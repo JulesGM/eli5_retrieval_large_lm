@@ -1,0 +1,4 @@
+{
+  "vm-only": true,
+  "instance-type": "n1-standard-8"
+}

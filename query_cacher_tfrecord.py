@@ -26,8 +26,8 @@ pytype query_cacher_tfrecord.py -P . --check-variable-types \
   --check-container-types \
   --check-parameter-types --precise-return && \
   python3 check_flags.py query_cacher_tfrecord.py && \
-  python3 query_cacher_tfrecord.py $(python3 json_to_args.py \
-  configs/query_cacher_configs/local.json) \
+  FLAGS=$(python3 json_to_args.py configs/query_cacher_configs/local.json) && \
+  python3 query_cacher_tfrecord.py $FLAGS \
   --logger_levels=__main__:DEBUG,utils:DEBUG,tf_utils:DEBUG \
   --use_subset=True
 
@@ -36,8 +36,8 @@ pytype query_cacher_tfrecord.py -P . --check-variable-types \
   --check-container-types \
   --check-parameter-types --precise-return && \
   python3 check_flags.py query_cacher_tfrecord.py && \
-  python3 query_cacher_tfrecord.py \
-  $(python json_to_args.py configs/query_cacher_tfr_configs/remote.json)
+  FLAGS=$(python3 json_to_args.py configs/query_cacher_tfr_configs/remote.json) && \
+  python3 query_cacher_tfrecord.py $FLAGS
 
   """
 import collections
