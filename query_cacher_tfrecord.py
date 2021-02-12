@@ -23,15 +23,23 @@ Examples of use:
 
 # Local Test
 pytype query_cacher_tfrecord.py -P . --check-variable-types \
---check-container-types \
---check-parameter-types --precise-return && \
-python3 check_flags.py query_cacher_tfrecord.py && \
-python3 query_cacher_tfrecord.py $(python3 json_to_args.py \
-configs/query_cacher_configs/local.json) \
---logger_levels=__main__:DEBUG,utils:DEBUG,tf_utils:DEBUG \
---use_subset=True
+  --check-container-types \
+  --check-parameter-types --precise-return && \
+  python3 check_flags.py query_cacher_tfrecord.py && \
+  python3 query_cacher_tfrecord.py $(python3 json_to_args.py \
+  configs/query_cacher_configs/local.json) \
+  --logger_levels=__main__:DEBUG,utils:DEBUG,tf_utils:DEBUG \
+  --use_subset=True
 
-"""
+# Remote use
+pytype query_cacher_tfrecord.py -P . --check-variable-types \
+  --check-container-types \
+  --check-parameter-types --precise-return && \
+  python3 check_flags.py query_cacher_tfrecord.py && \
+  python3 query_cacher_tfrecord.py \
+  $(python json_to_args.py configs/query_cacher_tfr_configs/remote.json)
+
+  """
 import collections
 import logging
 import os
@@ -54,6 +62,11 @@ import tqdm
 import transformers
 import utils
 
+_FLAG_TPU_NAME = flags.DEFINE_string(
+  "tpu_name",
+  None,
+  "Name of the TPU",
+)
 
 _FLAG_JOB_NAME = flags.DEFINE_string(
     "run_name",
@@ -256,9 +269,11 @@ def main(argv):
   # Setup devices and strategy
   ##############################################################################
   with utils.log_duration(LOGGER, "main", "Initializing devices"):
-    tpu_config = tf_utils.init_tpus()
+    tpu_config = tf_utils.init_tpus(_FLAG_TPU_NAME.value)
     device_type = tf_utils.current_accelerator_type()
     LOGGER.debug("Devices: %s", str(tf_utils.devices_to_use()))
+    if _FLAG_TPU_NAME.value and device_type == "CPU":
+      raise RuntimeError("Device is CPU and we expected a TPU.")
 
     if device_type == "TPU":
       if tpu_config is None:

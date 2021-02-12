@@ -1,10 +1,11 @@
 tf-nightly
 tensor2tensor
-# tensorflow_hub
-# tensorflow_text
+tensorflow_hub
+tensorflow_text
 transformers
 absl-py
 colorama
+colored_traceback
 numpy
 tqdm
 datasets
