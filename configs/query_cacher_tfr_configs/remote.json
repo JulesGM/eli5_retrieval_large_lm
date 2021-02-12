@@ -3,5 +3,4 @@
   "retriever_config_path": "configs/retriever_configs/open_source.json",
   "logger_levels": "__main__:DEBUG,utils:DEBUG,tf_utils:DEBUG,retrievers:DEBUG",
   "output_dir": "gs://julesgm-research-v3/tfrecord_query_cache/",
-  "tpu_name": "jules"
 }
