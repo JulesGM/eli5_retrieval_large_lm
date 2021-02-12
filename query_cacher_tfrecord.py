@@ -46,9 +46,7 @@ import constants
 import datasets
 import numpy as np
 import tensorflow as tf
-import tensorflow.python.distribute.values as values
 import tensorflow.python.framework.ops as ops
-import tensorflow.python.training.tracking.tracking as tracking
 import tensorflow_hub as hub
 import tf_utils
 import tqdm
@@ -281,14 +279,17 @@ def main(argv):
   gpt2_tokenizer.pad_token = gpt2_tokenizer.eos_token
 
   with utils.log_duration(LOGGER, "main", "Loading the ELI5 datasets."):
-    for split in tqdm.tqdm(keys):
-      load_path = os.path.join(
-          _FLAG_DATASET_ROOT.value,
-          "HuggingfaceDatasets",
-          f"{split}_kilt_eli5.hf"
-      )
-      with tf.device("/job:localhost"):
-        eli5[split] = datasets.load_from_disk(load_path)
+    if _FLAG_DATASET_ROOT.value:
+      for split in tqdm.tqdm(keys):
+        load_path = os.path.join(
+            _FLAG_DATASET_ROOT.value,
+            "HuggingfaceDatasets",
+            f"{split}_kilt_eli5.hf"
+        )
+        with tf.device("/job:localhost"):
+          eli5[split] = datasets.load_from_disk(load_path)
+    else:
+      eli5 = datasets.load_dataset("kilt_tasks", "eli5")
 
   ##############################################################################
   #

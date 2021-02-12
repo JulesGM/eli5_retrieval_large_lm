@@ -8,7 +8,5 @@ colorama
 numpy
 tqdm
 datasets
-# google-cloud-storage
-# scann
+google-cloud-storage
 psutil
-# h5py

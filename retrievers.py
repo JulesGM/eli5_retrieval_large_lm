@@ -205,7 +205,7 @@
 #   ):
 #     """Uses a file where all the retrievals have been made in advance.
 #
-#     Uses the exact retrievals from query_cacher.py, which have been made in
+#     Uses the exact retrievals from query_cacher_tfrecord.py, which have been made in
 #     advance, as the questions don't change. The retrievals are made by
 #     fetching
 #     the pre-made retrievals by using the question-id in a lookup table.
@@ -215,7 +215,7 @@
 #
 #     Args:
 #       db_path: Path to the hdf5 file that was generated with
-#       `query_cacher.py`,
+#       `query_cacher_tfrecord.py`,
 #         that contains the pre-made retrievals for all questions.
 #       block_records_path: Path to the file with the reference
 #       (often wikipedia)

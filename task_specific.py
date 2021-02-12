@@ -48,7 +48,6 @@ class CreateModelReturn:
 
 
 def load_model(
-    model_load_path,
     model_key,
     distribute_mode,
     tpu_setup,
@@ -60,7 +59,6 @@ def load_model(
   fails.
 
   Args:
-    model_load_path: Where to load the model from. Needs to be a **local** path.
     model_key: Key used to select the correct model loading function from
       the MODEL_FACTORIES dict.
     distribute_mode: A string describing how the model is distributed.
@@ -69,7 +67,6 @@ def load_model(
 
   Returns:
     Returns an object containing the tokenizer, the model and the strategy.
-
 
   Raises:
     RuntimeError: If model_load_path points to nothing.
@@ -110,7 +107,6 @@ def load_model(
     # model creation functions.
 
     config: CreateModelReturn = MODEL_FACTORIES[model_key](
-        model_load_path,
         model_key,
         distribute_mode,
         num_replicas,

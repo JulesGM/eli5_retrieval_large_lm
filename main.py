@@ -76,11 +76,6 @@ FLAG_RUN_NAME = flags.DEFINE_string(
     None,
     "Name of the run. Can be anything."
 )
-FLAG_MODEL_LOAD_PATH = flags.DEFINE_string(
-    "model_load_path",
-    None,
-    "Directory where the pre-trained model was saved."
-)
 FLAG_OUTPUT_DIR = flags.DEFINE_string(
     "output_dir",
     None,
@@ -163,11 +158,11 @@ FLAG_QUERY_END = flags.DEFINE_integer(
     256,
     "When querying once, length of the query being taken from the inputs."
 )
-FLAG_RETRIEVER_CONFIG_PATH = flags.DEFINE_string(
-    "retriever_config_path",
-    None,
-    "Path to the configuration file for the retrievers."
-)
+# FLAG_RETRIEVER_CONFIG_PATH = flags.DEFINE_string(
+#     "retriever_config_path",
+#     None,
+#     "Path to the configuration file for the retrievers."
+# )
 FLAG_SCANN_CONFIG_PATH = flags.DEFINE_string(
     "scann_config_path",
     os.path.join(
@@ -212,16 +207,6 @@ FLAG_DATASET_NAME = flags.DEFINE_enum(
     None,
     constants.DatasetNameChoices.choices(),
     "Name or TFDS key of the dataset we want"
-)
-FLAG_DATASET_PATH_ROOT = flags.DEFINE_string(
-    "dataset_paths_root",
-    None,
-    "Where to look for datasets."
-)
-FLAG_HF_DATASETS_CACHE_DIR = flags.DEFINE_string(
-    "hf_datasets_cache_dir",
-    None,
-    "Path to the cache of the huggingface datasets."
 )
 FLAG_USE_SUBSET = flags.DEFINE_bool(
     "use_subset",
@@ -522,11 +507,12 @@ def main(argv):
   if FLAG_TASK.value == constants.TaskChoices.train:
     with utils.log_duration(LOGGER, "main", "Load model"):
       utils.print_mem("before loading model", LOGGER)
-      model_specific = task_specific.load_model(FLAG_MODEL_LOAD_PATH.value,
-                                                FLAG_MODEL_KEY.value,
-                                                FLAG_DISTRIBUTE_MODE.value,
-                                                tpu_setup,
-                                                FLAG_NUM_REPLICAS.value)
+      model_specific = task_specific.load_model(
+          FLAG_MODEL_KEY.value,
+          FLAG_DISTRIBUTE_MODE.value,
+          tpu_setup,
+          FLAG_NUM_REPLICAS.value
+      )
       utils.print_mem("after loading model", LOGGER)
       model_or_replicas = model_specific.model
       if isinstance(model_or_replicas, list):
@@ -538,7 +524,8 @@ def main(argv):
 
       def make_optimizer():
         return tensor2tensor.utils.adafactor.AdafactorOptimizer(
-            learning_rate=FLAG_LEARNING_RATE.value)
+            learning_rate=FLAG_LEARNING_RATE.value
+        )
 
       if model_specific.strategy:
         with model_specific.strategy.scope():
