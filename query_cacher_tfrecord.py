@@ -42,6 +42,7 @@ from absl import app
 from absl import flags
 from absl import logging as absl_logging
 import bert_utils
+import colored_traceback.auto  # pylint: disable=unused-import
 import constants
 import datasets
 import numpy as np

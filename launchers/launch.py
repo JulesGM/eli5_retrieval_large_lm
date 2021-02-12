@@ -1,3 +1,8 @@
+r"""
+pytype launchers/launch.py && \
+  python check_flags.py launchers/launch.py && \
+  python launchers/launch.py
+"""
 import json
 import pathlib
 import os
@@ -5,6 +10,7 @@ import subprocess
 
 from absl import flags
 from absl import app
+import colored_traceback.auto  # pylint: disable=unused-import
 import pexpect
 import shlex
 
@@ -24,22 +30,29 @@ _FLAG_TF_VERSION = flags.DEFINE_enum(
         "tf_version",
         "nightly",
         ["nightly"],
-        ""
+        "",
 )
 
 _FLAG_TPU_TYPE = flags.DEFINE_enum(
         "tpu_type",
         "v3",
         ["v2", "v3"],
-        ""
+        "",
 )
 _FLAG_TPU_QTY = flags.DEFINE_enum(
         "tpu_qty",
         "8",
         ["8"],
-        "Size of the TPU group."
+        "Size of the TPU group. This currently should always "
+        "be 8.",
 )
-
+_FLAG_VM_ONLY = flags.DEFINE_boolean(
+  "vm_only",
+  False,
+  "Whether to only create a VM and not reserve TPUs."
+  "Great for running other tasks that don't require a TPU, "
+  "but that still require a similar setup.",
+)
 
 def flatten_once(collection):
     asd = []
@@ -74,6 +87,8 @@ def main(argv):
         raise RuntimeError(_FLAG_TPU_TYPE.value)
     bin = "ctpu"
     positional_flags = ["up"]
+    if _FLAG_VM_ONLY.value:
+      positional_flags.append("-vm-only")
     named_flags = {
         "-tf-version": _FLAG_TF_VERSION.value,
         "-zone": zone,
