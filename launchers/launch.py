@@ -1,5 +1,7 @@
 r"""
-pytype launchers/launch.py && \
+pytype launchers/launch.py -P . --check-variable-types \
+  --check-container-types \
+  --check-parameter-types --precise-return && \
   python check_flags.py launchers/launch.py && \
   FLAGS="$(python json_to_args.py configs/launcher_configs/query_cacher_tfrecord.json)" && \
   python launchers/launch.py $FLAGS
@@ -10,6 +12,7 @@ import operator
 import os
 import subprocess
 import sys
+import time
 
 from absl import flags
 from absl import app
@@ -19,7 +22,7 @@ import shlex
 
 
 _SCRIPT_DIRECTORY = pathlib.Path(__file__).resolve().parent
-sys.path.append(_SCRIPT_DIRECTORY.parent)
+sys.path.append(str(_SCRIPT_DIRECTORY.parent))
 import utils
 
 
@@ -28,39 +31,39 @@ _ZONE_TPUV3 = "europe-west4-a"
 
 # Args
 _FLAG_NAME = flags.DEFINE_string(
-  "instance_name",
+  "instance-name",
   "jules",
   "",
 )
 
 _FLAG_INSTANCE_TYPE = flags.DEFINE_string(
-  "instance_type",
+  "instance-type",
   None,
   "See https://cloud.google.com/compute/docs/machine-types for details."
 )
 
 _FLAG_TF_VERSION = flags.DEFINE_enum(
-        "tf_version",
+        "tf-version",
         "nightly",
         ["nightly"],
         "",
 )
 
 _FLAG_TPU_TYPE = flags.DEFINE_enum(
-        "tpu_type",
+        "tpu-type",
         "v3",
         ["v2", "v3"],
         "",
 )
 _FLAG_TPU_QTY = flags.DEFINE_enum(
-        "tpu_qty",
+        "tpu-qty",
         "8",
         ["8"],
         "Size of the TPU group. This currently should always "
         "be 8.",
 )
 _FLAG_VM_ONLY = flags.DEFINE_boolean(
-  "vm_only",
+  "vm-only",
   False,
   "Whether to only create a VM and not reserve TPUs."
   "Great for running other tasks that don't require a TPU, "
@@ -87,6 +90,9 @@ def h2(text):
 def main(argv):
     if len(argv) > 1:
         raise RuntimeError(argv)
+
+    if not subprocess.check_output(["which", "gcloud"]).strip():
+      raise RuntimeError("`gcloud` is not in the path. `ctpu` won't work.")
 
     ###########################################################################
     # CTPU UP
@@ -115,11 +121,11 @@ def main(argv):
       utils.check_equal(len(instance_tuple), 3)
       utils.check_equal(instance_tuple[0], "n1")
       utils.check_equal(instance_tuple[1], "standard")
-      num_cpus = int(instance_tuple[3])
+      num_cpus = int(instance_tuple[2])
       utils.check_operator(operator.le, num_cpus, 16)
       utils.check_operator(operator.ge, num_cpus, 0)
       # Add it
-      named_flags["machine-type"] = _FLAG_INSTANCE_TYPE.value
+      named_flags["-machine-type"] = _FLAG_INSTANCE_TYPE.value
 
     # Create the command
     cmd_flags = [bin] + positional_flags + [
@@ -135,6 +141,7 @@ def main(argv):
 
     # Run the command
     ctpu = pexpect.spawn(line)
+    ctpu.logfile = sys.stdout.buffer
     print("[Spawned]")
     ctpu.expect("OK to create your Cloud TPU resources with the ")
     print("[Ok to create your Cloud TPU resources ...]")
@@ -148,15 +155,20 @@ def main(argv):
     # Copying setup.sh over
     ###########################################################################
     h1("Copying setup.sh")
-    obj = subprocess.run([
-        "gcloud", "compute", "scp",
-        f"{_SCRIPT_DIRECTORY}/setup.sh",
-        f"{_FLAG_NAME.value}@{_FLAG_NAME.value}:"
-        f"/home/{_FLAG_NAME.value}/",
-    ], stdout=subprocess.PIPE, check=True)
-    h2("Done with sending setup.sh. Output:")
-    if obj.stdout:
-        print(obj.stdout)
+    while True:
+      obj = subprocess.run([
+          "gcloud", "compute", "scp",
+          f"{_SCRIPT_DIRECTORY}/setup.sh",
+          f"{_FLAG_NAME.value}@{_FLAG_NAME.value}:"
+          f"/home/{_FLAG_NAME.value}/",
+      ], stdout=subprocess.PIPE, check=True)
+      h2("Done with sending setup.sh. Output:")
+      if obj.stdout:
+          print(obj.stdout)
+
+      sleep_time = 30
+      print(f"Sleeping for {sleep_time} seconds.")
+      time.sleep(30)
 
     ###########################################################################
     # Running setup.sh
