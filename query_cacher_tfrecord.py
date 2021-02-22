@@ -348,7 +348,6 @@ def main(argv):
             variable_name="block_emb",
         )
 
-  import pdb; pdb.set_trace()
   ############################################################################
   # Prep the encoder and the tokenizer
   ############################################################################
@@ -419,6 +418,9 @@ def main(argv):
             sample_id=eli5[split]["id"],
             question=eli5[split]["input"],
         )
+
+      import pdb;
+      pdb.set_trace()
 
       ds = tf.data.Dataset.from_tensor_slices(for_slices)
       ds = ds.map(transform, num_parallel_calls=tf.data.experimental.AUTOTUNE)
