@@ -409,7 +409,7 @@ def main(argv):
         for_slices = dict(
             sample_id=eli5[split]["id"],
             question=eli5[split]["input"],
-            answer=[sample["answer"][0] for sample in eli5[split]["output"]]
+            answer=[sample[0] for sample in eli5[split]["output"]]
         )
       else:
         for_slices = dict(
