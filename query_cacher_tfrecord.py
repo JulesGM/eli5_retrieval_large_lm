@@ -327,9 +327,9 @@ def main(argv):
              for i in range(_FLAG_NUM_SHARDS.value)
              ]
     all_paths[split] = paths
-    print("--> Before RecordWriter")
-    writers[split] = [tf.io.TFRecordWriter(filename) for filename in paths]
-    print("--> After RecordWriter")
+    # print("--> Before RecordWriter")
+    # writers[split] = [tf.io.TFRecordWriter(filename) for filename in paths]
+    # print("--> After RecordWriter")
 
     with utils.log_duration(LOGGER, "main", "Loading the reference db."):
       checkpoint_path = os.path.join(
@@ -545,9 +545,9 @@ def main(argv):
               }
           )
 
-          writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
-              tf.train.Example(features=feature).SerializeToString()
-          )
+          # writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
+          #     tf.train.Example(features=feature).SerializeToString()
+          # )
           sample_count += 1
         if sample_count % 1000 == 0:
           LOGGER.debug("Paths: %s", str(all_paths[split][0]))
