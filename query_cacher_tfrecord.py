@@ -305,13 +305,17 @@ def main(argv):
   ):
     # Extract the appropriate text
     # The buffer_size is taken from the original ORQA code.
+    print("tfrecord")
     blocks_dataset = tf.data.TFRecordDataset(
         retriever_config.text_records, buffer_size=512 * 1024 * 1024
     )
+    print("batch")
     blocks_dataset = blocks_dataset.batch(
         retriever_config.num_block_records, drop_remainder=True
     )
+    print("get single element")
     blocks = tf.data.experimental.get_single_element(blocks_dataset)
+    print("really done")
 
   ############################################################################
   # Prepare the output file.
