@@ -45,6 +45,11 @@ import constants
 import datasets
 import numpy as np
 import tensorflow as tf
+
+major, minor, _ = list(map(int, tf.__version__.strip().split(".")))
+assert major == 2, tf.__version__
+assert minor == 4, tf.__version__
+
 import tensorflow.python.framework.ops as ops
 import tensorflow_hub as hub
 import tf_utils
