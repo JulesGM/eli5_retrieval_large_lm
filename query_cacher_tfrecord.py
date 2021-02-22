@@ -404,6 +404,7 @@ def main(argv):
       sample_count = 0
       eli5: Dict[str, datasets.Dataset]
 
+      import pdb; pdb.set_trace()
       if split != "test":
         for_slices = dict(
             sample_id=eli5[split]["id"],
