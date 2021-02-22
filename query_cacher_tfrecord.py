@@ -338,12 +338,11 @@ def main(argv):
 
       reference_db_device = tf_utils.device_mapping().CPUs[0].name
       with tf.device(reference_db_device):
-        print("--> Before load_reference_db")
         reference_db = tf_utils.load_reference_db(
             checkpoint_path,
             variable_name="block_emb",
         )
-        print("--> After load_reference_db")
+
 
   ############################################################################
   # Prep the encoder and the tokenizer
@@ -404,7 +403,6 @@ def main(argv):
       sample_count = 0
       eli5: Dict[str, datasets.Dataset]
 
-      import pdb; pdb.set_trace()
       if split != "test":
         for_slices = dict(
             sample_id=eli5[split]["id"],
