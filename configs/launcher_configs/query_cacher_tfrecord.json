@@ -1,4 +1,5 @@
 {
   "vm-only": true,
-  "instance-type": "n1-standard-16"
+  "instance-type": "n1-standard-16",
+  "preemptible-vm": true
 }

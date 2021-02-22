@@ -6,7 +6,7 @@ google-cloud-storage
 numpy
 psutil
 pytype
-tf-nightly
+tensorflow>=2.4
 tensor2tensor
 tensorflow_hub
 tensorflow_text
