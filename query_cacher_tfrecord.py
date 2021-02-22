@@ -305,17 +305,15 @@ def main(argv):
   ):
     # Extract the appropriate text
     # The buffer_size is taken from the original ORQA code.
-    print("tfrecord")
     blocks_dataset = tf.data.TFRecordDataset(
         retriever_config.text_records, buffer_size=512 * 1024 * 1024
     )
-    print("batch")
     blocks_dataset = blocks_dataset.batch(
         retriever_config.num_block_records, drop_remainder=True
     )
-    print("get single element")
-    blocks = tf.data.experimental.get_single_element(blocks_dataset)
-    print("really done")
+    blocks: tf.Tensor = tf.data.experimental.get_single_element(blocks_dataset)
+    print("really done.")
+    print(f"Blocks: {blocks.shape}. {blocks.dtype}")
 
   ############################################################################
   # Prepare the output file.
@@ -329,7 +327,9 @@ def main(argv):
              for i in range(_FLAG_NUM_SHARDS.value)
              ]
     all_paths[split] = paths
+    print("--> Before RecordWriter")
     writers[split] = [tf.io.TFRecordWriter(filename) for filename in paths]
+    print("--> After RecordWriter")
 
     with utils.log_duration(LOGGER, "main", "Loading the reference db."):
       checkpoint_path = os.path.join(
@@ -338,10 +338,12 @@ def main(argv):
 
       reference_db_device = tf_utils.device_mapping().CPUs[0].name
       with tf.device(reference_db_device):
+        print("--> Before load_reference_db")
         reference_db = tf_utils.load_reference_db(
             checkpoint_path,
             variable_name="block_emb",
         )
+        print("--> After load_reference_db")
 
   ############################################################################
   # Prep the encoder and the tokenizer
