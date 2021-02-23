@@ -140,6 +140,7 @@ def _bytes_feature(value):
   """Returns a bytes_list from a string / byte."""
   if isinstance(value, type(tf.constant(0))):
     value = value.numpy()
+
   return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
@@ -521,11 +522,12 @@ def main(argv):
         # Retrieve the text fields associated to the indices
         gathered = tf.gather(blocks, top_k).numpy()
         utils.check_equal(gathered.shape[0], current_batch_size)
+        utils.check_equal(gathered.shape[1], _FLAG_NUM_RETRIEVALS.value)
 
         retrievals = []
-        for j in range(gathered.shape[0]):
+        for index_in_batch in range(current_batch_size):
           # Put the appropriate byte strings in a list
-          local_gathered = gathered[j].tolist()
+          local_gathered = gathered[index_in_batch].tolist()
           utils.check_equal(len(local_gathered), _FLAG_NUM_RETRIEVALS.value)
           # Decode to utf-8
           local_gathered = [sample.decode() for sample in local_gathered]
@@ -543,9 +545,13 @@ def main(argv):
           for line in token_ids:
             assert not np.all(line == 0), line
 
+          # Convert the eos_tokens
           token_ids[token_ids == gpt2_tokenizer.eos_token_id] = -1
+
+          # Save the retrievals
           retrievals.append(token_ids)
 
+        # Save the feature
         features[constants.CTH5Fields.gpt2_retrieved_ids] = retrievals
 
         utils.check_equal(
@@ -557,21 +563,25 @@ def main(argv):
           utils.check_equal(len(v), current_batch_size)
 
         for index_in_batch in range(current_batch_size):
-          # Cast the features
           feature_dict = {}
           for feature_k, feature_v in features.items():
+            # Cast the feature to its appropriate dtype
             casted_feats = tf.cast(
               feature_v[index_in_batch], feature_dtypes[feature_k]
             )
-            # Serialized to bytes
+            # Serialize the tensor to bytes
             feature_bytes = tf.io.serialize_tensor(casted_feats)
+            # Build a bytes list tf.train.Feature object,
+            # the serialization tree node
             feature_dict[feature_k] = _bytes_feature(feature_bytes)
 
-          # Create a feature object
+          # Create the serialization tree root
+          ## Not sure why we need a tf.train.Features and a tf.train.Example
           feature = tf.train.Features(feature=feature_bytes)
+          example_obj = tf.train.Example(features=feature)
 
-          # Convert it to bytes ?
-          feature_bytes = tf.train.Example(features=feature).SerializeToString()
+          # Serialize that to bytes
+          feature_bytes = example_obj.SerializeToString()
 
           # Write the bytes
           # writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
