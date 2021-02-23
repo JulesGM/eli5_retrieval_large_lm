@@ -134,6 +134,8 @@ _FLAG_SUBSET_QTY = flags.DEFINE_integer(
 LOGGER = logging.getLogger(__name__)
 
 
+
+
 def _bytes_feature(value):
   """Returns a bytes_list from a string / byte."""
   if isinstance(value, type(tf.constant(0))):
@@ -282,7 +284,7 @@ def main(argv):
       raise RuntimeError(device_type)
 
   ##############################################################################
-  # Load the dataset.
+  # Load the KILT ELI5 dataset.
   ##############################################################################
   eli5 = {}
   keys = ["train", "eval", "test"]
@@ -303,7 +305,7 @@ def main(argv):
       eli5 = datasets.load_dataset("kilt_tasks", "eli5")
 
   ##############################################################################
-  #
+  # Load the dataset of the text that will be retrieved.
   ##############################################################################
   with utils.log_duration(
       LOGGER, "Main", "Load the textual dataset"
@@ -314,7 +316,7 @@ def main(argv):
         retriever_config.text_records, buffer_size=512 * 1024 * 1024
     )
     blocks_dataset = blocks_dataset.batch(
-        retriever_config.num_block_records, drop_remainder=True
+        retriever_config.num_block_records, drop_remainder=False
     )
     blocks: tf.Tensor = tf.data.experimental.get_single_element(blocks_dataset)
     print("really done.")
@@ -494,13 +496,18 @@ def main(argv):
         ######################################################################
         # Retrieve.
         ######################################################################
+        # Do exact retrieval
         with tf.device(reference_db_device):
           top_k, inner_prods = tf_utils.mips_exact_search(
               embeddings, _FLAG_NUM_RETRIEVALS.value, reference_db
           )
+
+        # Collate the results
         top_k = tf_utils.process_strat_output(
             top_k, "top_k", strategy, current_batch_size
         )
+
+        # Check the shapes
         utils.check_equal(
             inner_prods.shape, (current_batch_size, _FLAG_NUM_RETRIEVALS.value)
         )
@@ -508,15 +515,21 @@ def main(argv):
             top_k.shape, (current_batch_size, _FLAG_NUM_RETRIEVALS.value)
         )
 
+        # Save the distances
         features[constants.CTH5Fields.distances].extend(inner_prods)
 
+        # Retrieve the text fields associated to the indices
         gathered = tf.gather(blocks, top_k).numpy()
         utils.check_equal(gathered.shape[0], current_batch_size)
+
         retrievals = []
         for j in range(gathered.shape[0]):
+          # Put the appropriate byte strings in a list
           local_gathered = gathered[j].tolist()
           utils.check_equal(len(local_gathered), _FLAG_NUM_RETRIEVALS.value)
+          # Decode to utf-8
           local_gathered = [sample.decode() for sample in local_gathered]
+          # Encode to GPT2 BPE
           token_ids = np.array(
               gpt2_tokenizer.batch_encode_plus(
                   local_gathered,
@@ -524,11 +537,15 @@ def main(argv):
                   truncation=True,
               ).input_ids
           )
+
+          # Make sure no line is empty
+          # TODO(julesgm): Maybe optional
           for line in token_ids:
             assert not np.all(line == 0), line
 
           token_ids[token_ids == gpt2_tokenizer.eos_token_id] = -1
           retrievals.append(token_ids)
+
         features[constants.CTH5Fields.gpt2_retrieved_ids] = retrievals
 
         utils.check_equal(
@@ -539,18 +556,27 @@ def main(argv):
         for k, v in features.items():
           utils.check_equal(len(v), current_batch_size)
 
-        for k in range(current_batch_size):
-          feature = tf.train.Features(
-              feature={
-                  k: _bytes_feature(tf.io.serialize_tensor(
-                      tf.cast(v[k], feature_dtypes[k])))
-                  for k, v in features.items()
-              }
-          )
+        for index_in_batch in range(current_batch_size):
+          # Cast the features
+          feature_dict = {}
+          for feature_k, feature_v in features.items():
+            casted_feats = tf.cast(
+              feature_v[index_in_batch], feature_dtypes[feature_k]
+            )
+            # Serialized to bytes
+            feature_bytes = tf.io.serialize_tensor(casted_feats)
+            feature_dict[feature_k] = _bytes_feature(feature_bytes)
 
-          # writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
-          #     tf.train.Example(features=feature).SerializeToString()
-          # )
+          # Create a feature object
+          feature = tf.train.Features(feature=feature_bytes)
+
+          # Convert it to bytes ?
+          feature_bytes = tf.train.Example(features=feature).SerializeToString()
+
+          # Write the bytes
+          writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
+              feature_bytes
+          )
           sample_count += 1
         if sample_count % 1000 == 0:
           LOGGER.debug("Paths: %s", str(all_paths[split][0]))

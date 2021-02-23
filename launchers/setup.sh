@@ -58,3 +58,10 @@ title "Installing all of the python requirements"
 pushd eli5_retrieval_large_lm
 python -m pip install -r requirements.txt -q 1>/dev/null
 popd
+
+
+{
+  echo "alias ls='ls --color -X --group-directories-first'";
+  echo "alias l='ls'";
+  echo "alias ll='ls -l'";
+} >> ~/.bashrc

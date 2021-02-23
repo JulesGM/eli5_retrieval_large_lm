@@ -108,9 +108,9 @@ def flatten_once(collection):
 
 
 def h1(text):
-    print("\n" + "#" * 80)
+    print("\n" + "#" * utils.term_size())
     print("# " + text)
-    print("#" * 80)
+    print("#" * utils.term_size())
 
 
 def h2(text):
