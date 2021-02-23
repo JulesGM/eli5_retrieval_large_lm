@@ -329,15 +329,23 @@ def main(argv):
   writers = {}
 
   all_paths = {}
+  keys = keys[::-1]
+  print(f"Split order: {keys}")
   for split in keys:
     maybe_subset = "_subset" if _FLAG_USE_SUBSET.value else ""
     paths = [os.path.join(target_path + maybe_subset, f"{split}_{i}.tfr")
              for i in range(_FLAG_NUM_SHARDS.value)
              ]
     all_paths[split] = paths
-    # print("--> Before RecordWriter")
-    # writers[split] = [tf.io.TFRecordWriter(filename) for filename in paths]
-    # print("--> After RecordWriter")
+
+    print("\n--> Before RecordWriter")
+    print(f"Paths for split `{split}`:")
+    for path in paths:
+      print(f" - {path}")
+    writers[split] = [
+      tf.io.TFRecordWriter(filename) for filename in paths
+    ]
+    print("--> After RecordWriter\n")
 
     with utils.log_duration(LOGGER, "main", "Loading the reference db."):
       checkpoint_path = os.path.join(
@@ -414,7 +422,9 @@ def main(argv):
         for_slices = dict(
             sample_id=eli5[split]["id"],
             question=eli5[split]["input"],
-            answer=[sample[0]["answer"] for sample in eli5[split]["output"]]
+            answer=[
+              sample[0]["answer"] for sample in eli5[split]["output"]
+            ]
         )
       else:
         for_slices = dict(
