@@ -576,16 +576,17 @@ def main(argv):
             feature_dict[feature_k] = _bytes_feature(feature_bytes)
 
           # Create the serialization tree root
-          ## Not sure why we need a tf.train.Features and a tf.train.Example
-          feature = tf.train.Features(feature=feature_bytes)
+          # Expects a list of features
+          feature = tf.train.Features(feature=feature_dict)
+          # Expects a tf.train.Features object
           example_obj = tf.train.Example(features=feature)
 
           # Serialize that to bytes
-          feature_bytes = example_obj.SerializeToString()
+          serialized_example = example_obj.SerializeToString()
 
           # Write the bytes
           # writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
-          #     feature_bytes
+          #     serialized_example
           # )
           sample_count += 1
         if sample_count % 1000 == 0:
