@@ -411,16 +411,13 @@ def main(argv):
         for_slices = dict(
             sample_id=eli5[split]["id"],
             question=eli5[split]["input"],
-            answer=[sample[0] for sample in eli5[split]["output"]]
+            answer=[sample[0]["answer"] for sample in eli5[split]["output"]]
         )
       else:
         for_slices = dict(
             sample_id=eli5[split]["id"],
             question=eli5[split]["input"],
         )
-
-      import pdb;
-      pdb.set_trace()
 
       ds = tf.data.Dataset.from_tensor_slices(for_slices)
       ds = ds.map(transform, num_parallel_calls=tf.data.experimental.AUTOTUNE)
