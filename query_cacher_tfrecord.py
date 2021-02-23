@@ -574,9 +574,9 @@ def main(argv):
           feature_bytes = tf.train.Example(features=feature).SerializeToString()
 
           # Write the bytes
-          writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
-              feature_bytes
-          )
+          # writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
+          #     feature_bytes
+          # )
           sample_count += 1
         if sample_count % 1000 == 0:
           LOGGER.debug("Paths: %s", str(all_paths[split][0]))
