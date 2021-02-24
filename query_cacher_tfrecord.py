@@ -354,6 +354,7 @@ def main(argv):
     writers[split] = []
 
     for i, path in enumerate(paths):
+      print(f"Path {i} -- {split}: {path}")
       writers[split].append(tf.io.TFRecordWriter(path))
 
     with utils.log_duration(LOGGER, "main", "Loading the reference db."):
