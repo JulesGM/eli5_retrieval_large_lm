@@ -343,8 +343,7 @@ def main(argv):
     writers[split] = []
     for i, path in enumerate(paths):
       print(f" #{i} - {path}", flush=True)
-      writers[split].append(tf.io.TFRecordWriter(
-        path, options=tf.io.TFRecordCompressionType.NONE))
+      writers[split].append(tf.io.TFRecordWriter(path))
 
     print("--> After RecordWriter\n", flush=True)
 
