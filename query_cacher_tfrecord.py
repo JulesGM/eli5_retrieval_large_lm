@@ -32,6 +32,7 @@ pytype query_cacher_tfrecord.py -P . --check-variable-types \
   """
 import collections
 import logging
+import multiprocessing
 import os
 import resource
 import time
@@ -299,10 +300,7 @@ def main(argv):
   ##############################################################################
   # Takes a while
   eli5 = {}
-  keys = [
-  #  "train",
-    "validation", "test"
-  ]
+  keys = ["train", "validation", "test"]
   gpt2_tokenizer = transformers.GPT2TokenizerFast.from_pretrained("gpt2-xl")
   gpt2_tokenizer.pad_token = gpt2_tokenizer.eos_token
 
@@ -614,6 +612,7 @@ def main(argv):
               serialized_example
           )
           sample_count += 1
+
         if sample_count % 1000 == 0:
           LOGGER.debug("Paths: %s", str(all_paths[split][0]))
 
