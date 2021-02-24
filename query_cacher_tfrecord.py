@@ -340,12 +340,12 @@ def main(argv):
 
     print("\n--> Before RecordWriter")
     print(f"Paths for split `{split}`:")
+    writers[split] = []
     for path in paths:
-      print(f" - {path}")
-    writers[split] = [
-      tf.io.TFRecordWriter(filename) for filename in paths
-    ]
-    print("--> After RecordWriter\n")
+      print(f" - {path}", flush=True)
+      writers[split].append(tf.io.TFRecordWriter(path))
+
+    print("--> After RecordWriter\n", flush=True)
 
     with utils.log_duration(LOGGER, "main", "Loading the reference db."):
       checkpoint_path = os.path.join(
@@ -353,6 +353,7 @@ def main(argv):
           "encoded", "encoded.ckpt"
       )
 
+      print("####### HERE", flush=True)
       reference_db_device = tf_utils.device_mapping().CPUs[0].name
       with tf.device(reference_db_device):
         reference_db = tf_utils.load_reference_db(
