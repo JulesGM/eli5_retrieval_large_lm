@@ -358,6 +358,7 @@ def main(argv):
     writers[split] = []
 
     for i, path in enumerate(paths):
+      print(i)
       writers[split].append(tf.io.TFRecordWriter(path))
     print("\n--> After RecordWriter")
     import pdb; pdb.set_trace()
