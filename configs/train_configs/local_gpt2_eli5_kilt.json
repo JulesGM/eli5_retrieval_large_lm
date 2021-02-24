@@ -2,12 +2,12 @@
   "task": "train",
   "dataset_name": "kilt_eli5",
   "model_output_path": "gs://julesgm-research-v3/eli5_retrieval_large_lm/model_output/",
-  "output_dir": "/usr/local/google/home/julesgm/workdir/gcs/research-brain-retrieval-during-gen-xgcp/retrieval_during_decoding/evaluate/logs/",
+  "output_dir": "/tmp/trainig_logs/",
 
   "run_name": "gpt2_eli5_kilt",
   "logger_levels": "__main__:DEBUG,eli5_retrieval_large_lm.bert_utils:DEBUG,eli5_retrieval_large_lm.retrievers:DEBUG,eli5_retrieval_large_lm.scann_utils:DEBUG,eli5_retrieval_large_lm.task_specific:DEBUG,eli5_retrieval_large_lm.utils:DEBUG,tf_utils:DEBUG",
 
-  "tfr_prefix": "gs://julesgm-research-v3/eli5_retrieval_large_lm/tfrecord_query_cache/good/",
+  "tfr_prefix": "gs://julesgm-research-v3/tfrecord_query_cache/",
   "dataset_type": "tfr",
 
   "use_helper_words": true,

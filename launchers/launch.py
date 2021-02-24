@@ -232,14 +232,11 @@ def start_using_gcloud():
 
   named_flags = {
     "--zone": zone,
-    "--image-family":
-      _FLAG_IMAGE_FAMILY.value,
-    "--image-project":
-      "deeplearning-platform-release",
-    "--machine-type":
-      _FLAG_INSTANCE_TYPE.value,
-    "--boot-disk-size":
-      f"{_FLAG_BOOT_DISK_SIZE.value}GB",
+    "--image-family": _FLAG_IMAGE_FAMILY.value,
+    "--image-project": "deeplearning-platform-release",
+    "--machine-type": _FLAG_INSTANCE_TYPE.value,
+    "--boot-disk-size": f"{_FLAG_BOOT_DISK_SIZE.value}GB",
+    "--scopes": "cloud-platform",
   }
 
   for key, value in named_flags.items():

@@ -5,8 +5,8 @@ if [[ "$HOSTNAME" == MBP-* ]] ; then
   return
 fi
 
-SCRIPT_PATH=query_cacher_tfrecord.py
-CONFIG_PATH=configs/query_cacher_tfr_configs/remote.json
+SCRIPT_PATH=main.py
+CONFIG_PATH=configs/train_configs/tpu_gpt2_eli5_kilt.json
 
 pytype "$SCRIPT_PATH" -P . --check-variable-types \
   --check-container-types \

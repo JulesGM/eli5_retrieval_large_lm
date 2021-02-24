@@ -332,8 +332,6 @@ def main(argv):
         retriever_config.num_block_records, drop_remainder=False
     )
     blocks: tf.Tensor = tf.data.experimental.get_single_element(blocks_dataset)
-    print("really done.")
-    print(f"Blocks: {blocks.shape}. {blocks.dtype}")
 
   ############################################################################
   # Increase the number of maximum open file descriptors to make space
@@ -606,6 +604,8 @@ def main(argv):
           serialized_example = example_obj.SerializeToString()
 
           # Write the bytes
+          # TODO(julesgm): Parallelize this with a thread or a process pool &
+          #   futures.
           writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
               serialized_example
           )
