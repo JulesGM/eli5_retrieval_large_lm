@@ -11,6 +11,10 @@ title () {
 }
 
 
+title "Authenticating with gcloud"
+gcloud auth login
+
+
 title "Installing generic dependencies"
 sudo apt-get -qq install -y wget subversion 1>/dev/null
 

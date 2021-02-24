@@ -349,7 +349,8 @@ def main(argv):
 
     with utils.log_duration(LOGGER, "main", "Loading the reference db."):
       checkpoint_path = os.path.join(
-          retriever_config.query_embedder_path, "encoded", "encoded.ckpt"
+          retriever_config.query_embedder_path,
+          "encoded", "encoded.ckpt"
       )
 
       reference_db_device = tf_utils.device_mapping().CPUs[0].name
