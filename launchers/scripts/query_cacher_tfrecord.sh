@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+
+if [[ "$HOSTNAME" == MBP-* ]] ; then
+  echo "Running on MBP, aborting"
+  return
+fi
+
 pytype query_cacher_tfrecord.py -P . --check-variable-types \
   --check-container-types \
   --check-parameter-types --precise-return && \
