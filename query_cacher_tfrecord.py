@@ -302,38 +302,38 @@ def main(argv):
   keys = ["train", "eval", "test"]
   gpt2_tokenizer = transformers.GPT2TokenizerFast.from_pretrained("gpt2-xl")
   gpt2_tokenizer.pad_token = gpt2_tokenizer.eos_token
-  #
-  # with utils.log_duration(LOGGER, "main", "Loading the ELI5 datasets."):
-  #   if _FLAG_DATASET_ROOT.value:
-  #     for split in tqdm.tqdm(keys):
-  #       load_path = os.path.join(
-  #           _FLAG_DATASET_ROOT.value,
-  #           "HuggingfaceDatasets",
-  #           f"{split}_kilt_eli5.hf"
-  #       )
-  #       with tf.device("/job:localhost"):
-  #         eli5[split] = datasets.load_from_disk(load_path)
-  #   else:
-  #     eli5 = datasets.load_dataset("kilt_tasks", "eli5")
+
+  with utils.log_duration(LOGGER, "main", "Loading the ELI5 datasets."):
+    if _FLAG_DATASET_ROOT.value:
+      for split in tqdm.tqdm(keys):
+        load_path = os.path.join(
+            _FLAG_DATASET_ROOT.value,
+            "HuggingfaceDatasets",
+            f"{split}_kilt_eli5.hf"
+        )
+        with tf.device("/job:localhost"):
+          eli5[split] = datasets.load_from_disk(load_path)
+    else:
+      eli5 = datasets.load_dataset("kilt_tasks", "eli5")
 
   ##############################################################################
   # Load the dataset of the text that will be retrieved.
   ##############################################################################
   # Takes a long time
-  # with utils.log_duration(
-  #     LOGGER, "Main", "Load the textual dataset"
-  # ):
-  #   # Extract the appropriate text
-  #   # The buffer_size is taken from the original ORQA code.
-  #   blocks_dataset = tf.data.TFRecordDataset(
-  #       retriever_config.text_records, buffer_size=512 * 1024 * 1024
-  #   )
-  #   blocks_dataset = blocks_dataset.batch(
-  #       retriever_config.num_block_records, drop_remainder=False
-  #   )
-  #   blocks: tf.Tensor = tf.data.experimental.get_single_element(blocks_dataset)
-  #   print("really done.")
-  #   print(f"Blocks: {blocks.shape}. {blocks.dtype}")
+  with utils.log_duration(
+      LOGGER, "Main", "Load the textual dataset"
+  ):
+    # Extract the appropriate text
+    # The buffer_size is taken from the original ORQA code.
+    blocks_dataset = tf.data.TFRecordDataset(
+        retriever_config.text_records, buffer_size=512 * 1024 * 1024
+    )
+    blocks_dataset = blocks_dataset.batch(
+        retriever_config.num_block_records, drop_remainder=False
+    )
+    blocks: tf.Tensor = tf.data.experimental.get_single_element(blocks_dataset)
+    print("really done.")
+    print(f"Blocks: {blocks.shape}. {blocks.dtype}")
 
   ############################################################################
   # Increase the number of maximum open file descriptors to make space
@@ -353,15 +353,10 @@ def main(argv):
     paths = [os.path.join(target_path + maybe_subset, f"{split}_{i}.tfr")
              for i in range(_FLAG_NUM_SHARDS.value)]
     all_paths[split] = paths
-
-    print("\n--> Before RecordWriter")
     writers[split] = []
 
     for i, path in enumerate(paths):
-      print(i)
       writers[split].append(tf.io.TFRecordWriter(path))
-    print("\n--> After RecordWriter")
-    import pdb; pdb.set_trace()
 
     with utils.log_duration(LOGGER, "main", "Loading the reference db."):
       checkpoint_path = os.path.join(
@@ -611,9 +606,9 @@ def main(argv):
           serialized_example = example_obj.SerializeToString()
 
           # Write the bytes
-          # writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
-          #     serialized_example
-          # )
+          writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
+              serialized_example
+          )
           sample_count += 1
         if sample_count % 1000 == 0:
           LOGGER.debug("Paths: %s", str(all_paths[split][0]))
