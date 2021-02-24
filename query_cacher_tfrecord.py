@@ -33,7 +33,7 @@ pytype query_cacher_tfrecord.py -P . --check-variable-types \
 import collections
 import logging
 import os
-import subprocess
+import resource
 import time
 from typing import List, Callable, Dict
 
@@ -339,9 +339,8 @@ def main(argv):
   # Increase the number of maximum open file descriptors to make space
   # for all the shards.
   ############################################################################
-  ulimit_cmd = ["ulimit", "-n", str(_FLAG_NUM_SHARDS.value * 3 + _MIN_N_FD)]
-  print(f"Running `{' '.join(ulimit_cmd)}`")
-  subprocess.run(ulimit_cmd)
+  max_num_fd = _FLAG_NUM_SHARDS.value * 3 + _MIN_N_FD
+  resource.setrlimit(resource.RLIMIT_NOFILE, (max_num_fd, max_num_fd))
 
   ############################################################################
   # Prepare the output file.
