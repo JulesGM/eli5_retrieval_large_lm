@@ -299,7 +299,10 @@ def main(argv):
   ##############################################################################
   # Takes a while
   eli5 = {}
-  keys = ["train", "validation", "test"]
+  keys = [
+  #  "train",
+    "validation", "test"
+  ]
   gpt2_tokenizer = transformers.GPT2TokenizerFast.from_pretrained("gpt2-xl")
   gpt2_tokenizer.pad_token = gpt2_tokenizer.eos_token
 
@@ -354,7 +357,7 @@ def main(argv):
     writers[split] = []
 
     for i, path in enumerate(paths):
-      print(f"Path {i} -- {split}: {path}")
+      # print(f"Path {i} -- {split}: {path}")
       writers[split].append(tf.io.TFRecordWriter(path))
 
     with utils.log_duration(LOGGER, "main", "Loading the reference db."):
