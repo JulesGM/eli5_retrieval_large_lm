@@ -33,6 +33,7 @@ pytype query_cacher_tfrecord.py -P . --check-variable-types \
 import collections
 import logging
 import os
+import subprocess
 import time
 from typing import List, Callable, Dict
 
@@ -56,6 +57,14 @@ import tf_utils
 import tqdm
 import transformers
 import utils
+
+
+# Minimum number of file descriptors to be set with `ulimit -n`. Corresponds
+# to the default value given by `ulimit -n` on a ubuntu desktop. We don't
+# call `ulimit -n` dynamically to fetch the value in order to not accidentally
+# create a chain loop of ever increasing `ulimit -n`, even if it is super
+# unlikely.
+_MIN_N_FD = 256
 
 _FLAG_TPU_NAME = flags.DEFINE_string(
   "tpu_name",
@@ -266,6 +275,7 @@ def main(argv):
   ##############################################################################
   # Setup devices and strategy
   ##############################################################################
+  # Duration is pretty much instantaneous
   with utils.log_duration(LOGGER, "main", "Initializing devices"):
     tpu_config = tf_utils.init_tpus(_FLAG_TPU_NAME.value)
     device_type = tf_utils.current_accelerator_type()
@@ -287,73 +297,77 @@ def main(argv):
   ##############################################################################
   # Load the KILT ELI5 dataset.
   ##############################################################################
+  # Takes a while
   eli5 = {}
   keys = ["train", "eval", "test"]
   gpt2_tokenizer = transformers.GPT2TokenizerFast.from_pretrained("gpt2-xl")
   gpt2_tokenizer.pad_token = gpt2_tokenizer.eos_token
-
-  with utils.log_duration(LOGGER, "main", "Loading the ELI5 datasets."):
-    if _FLAG_DATASET_ROOT.value:
-      for split in tqdm.tqdm(keys):
-        load_path = os.path.join(
-            _FLAG_DATASET_ROOT.value,
-            "HuggingfaceDatasets",
-            f"{split}_kilt_eli5.hf"
-        )
-        with tf.device("/job:localhost"):
-          eli5[split] = datasets.load_from_disk(load_path)
-    else:
-      eli5 = datasets.load_dataset("kilt_tasks", "eli5")
+  #
+  # with utils.log_duration(LOGGER, "main", "Loading the ELI5 datasets."):
+  #   if _FLAG_DATASET_ROOT.value:
+  #     for split in tqdm.tqdm(keys):
+  #       load_path = os.path.join(
+  #           _FLAG_DATASET_ROOT.value,
+  #           "HuggingfaceDatasets",
+  #           f"{split}_kilt_eli5.hf"
+  #       )
+  #       with tf.device("/job:localhost"):
+  #         eli5[split] = datasets.load_from_disk(load_path)
+  #   else:
+  #     eli5 = datasets.load_dataset("kilt_tasks", "eli5")
 
   ##############################################################################
   # Load the dataset of the text that will be retrieved.
   ##############################################################################
-  with utils.log_duration(
-      LOGGER, "Main", "Load the textual dataset"
-  ):
-    # Extract the appropriate text
-    # The buffer_size is taken from the original ORQA code.
-    blocks_dataset = tf.data.TFRecordDataset(
-        retriever_config.text_records, buffer_size=512 * 1024 * 1024
-    )
-    blocks_dataset = blocks_dataset.batch(
-        retriever_config.num_block_records, drop_remainder=False
-    )
-    blocks: tf.Tensor = tf.data.experimental.get_single_element(blocks_dataset)
-    print("really done.")
-    print(f"Blocks: {blocks.shape}. {blocks.dtype}")
+  # Takes a long time
+  # with utils.log_duration(
+  #     LOGGER, "Main", "Load the textual dataset"
+  # ):
+  #   # Extract the appropriate text
+  #   # The buffer_size is taken from the original ORQA code.
+  #   blocks_dataset = tf.data.TFRecordDataset(
+  #       retriever_config.text_records, buffer_size=512 * 1024 * 1024
+  #   )
+  #   blocks_dataset = blocks_dataset.batch(
+  #       retriever_config.num_block_records, drop_remainder=False
+  #   )
+  #   blocks: tf.Tensor = tf.data.experimental.get_single_element(blocks_dataset)
+  #   print("really done.")
+  #   print(f"Blocks: {blocks.shape}. {blocks.dtype}")
+
+  ############################################################################
+  # Increase the number of maximum open file descriptors to make space
+  # for all the shards.
+  ############################################################################
+  ulimit_cmd = ["ulimit", "-n", str(_FLAG_NUM_SHARDS.value * 3 + _MIN_N_FD)]
+  print(f"Running `{' '.join(ulimit_cmd)}`")
+  subprocess.run(ulimit_cmd)
 
   ############################################################################
   # Prepare the output file.
   ############################################################################
   writers = {}
-
   all_paths = {}
   keys = keys[::-1]
-  print(f"Split order: {keys}")
   for split in keys:
     maybe_subset = "_subset" if _FLAG_USE_SUBSET.value else ""
     paths = [os.path.join(target_path + maybe_subset, f"{split}_{i}.tfr")
-             for i in range(_FLAG_NUM_SHARDS.value)
-             ]
+             for i in range(_FLAG_NUM_SHARDS.value)]
     all_paths[split] = paths
 
     print("\n--> Before RecordWriter")
-    print(f"Paths for split `{split}`:")
     writers[split] = []
-    for i, path in enumerate(paths):
-      print(f" #{i} - {path}", flush=True)
-      writers[split].append(tf.io.TFRecordWriter(path))
 
-    print("--> After RecordWriter\n", flush=True)
+    for i, path in enumerate(paths):
+      writers[split].append(tf.io.TFRecordWriter(path))
+    print("\n--> After RecordWriter")
+    import pdb; pdb.set_trace()
 
     with utils.log_duration(LOGGER, "main", "Loading the reference db."):
       checkpoint_path = os.path.join(
           retriever_config.query_embedder_path,
           "encoded", "encoded.ckpt"
       )
-
-      print("####### HERE", flush=True)
       reference_db_device = tf_utils.device_mapping().CPUs[0].name
       with tf.device(reference_db_device):
         reference_db = tf_utils.load_reference_db(
