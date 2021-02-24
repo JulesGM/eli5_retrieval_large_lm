@@ -613,6 +613,11 @@ def main(argv):
         if sample_count % 1000 == 0:
           LOGGER.debug("Paths: %s", str(all_paths[split][0]))
 
+      LOGGER.debug("Flushing and closing the `%s` writers", split)
+      for writer in tqdm.tqdm(writers[split]):
+        writer.flush()
+        writer.close()
+
   LOGGER.debug("Done.")
 
 if __name__ == "__main__":
