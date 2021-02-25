@@ -434,6 +434,7 @@ def main(argv):
   with utils.log_duration(LOGGER, "main", "generating codes"):
     with futures.ThreadPoolExecutor(os.cpu_count() - 1) as pool:
       for split in keys:
+        workers = []
         sample_count = 0
         eli5: Dict[str, datasets.Dataset]
 
@@ -591,7 +592,7 @@ def main(argv):
           for k, v in features.items():
             utils.check_equal(len(v), current_batch_size)
 
-          workers = []
+
           for index_in_batch in range(current_batch_size):
             feature_dict = {}
             for feature_k, feature_v in features.items():
@@ -650,9 +651,12 @@ def main(argv):
             worker.result()
           workers.clear()
 
-        LOGGER.debug("Flushing and closing the `%s` writers", split)
-        for writer in tqdm.tqdm(writers[split]):
-          writer.close()
+        workers = []
+        for writer in writers[split]:
+          workers.append(pool.submit(writer.close))
+
+        for worker in tqdm.tqdm(workers, desc="Closing"):
+          worker.result()
 
   LOGGER.debug("Done.")
 
