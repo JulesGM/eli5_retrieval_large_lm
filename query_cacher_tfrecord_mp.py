@@ -432,7 +432,7 @@ def main(argv):
   }
 
   with utils.log_duration(LOGGER, "main", "generating codes"):
-    with futures.ProcessPoolExecutor(os.cpu_count() - 1) as pool:
+    with futures.ThreadPoolExecutor(os.cpu_count() - 1) as pool:
       for split in keys:
         sample_count = 0
         eli5: Dict[str, datasets.Dataset]
