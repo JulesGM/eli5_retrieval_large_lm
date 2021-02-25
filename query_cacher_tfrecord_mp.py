@@ -33,6 +33,7 @@ pytype query_cacher_tfrecord.py -P . --check-variable-types \
 import collections
 import logging
 import concurrent.futures as futures
+import multiprocessing
 import operator
 import os
 import resource
@@ -618,12 +619,9 @@ def main(argv):
             # Write the bytes
             # TODO(julesgm): Parallelize this with a thread or a process pool &
             #   futures.
-            writers[split][sample_count % _FLAG_NUM_SHARDS.value].write(
-                serialized_example
-            )
             worker = pool.submit(
               tf_record_write,
-              writers[split][sample_count % _FLAG_NUM_SHARDS.value].write,
+              writers[split][sample_count % _FLAG_NUM_SHARDS.value],
               serialized_example
             )
             workers.append(worker)
