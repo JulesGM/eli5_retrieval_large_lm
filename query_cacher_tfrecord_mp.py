@@ -258,6 +258,11 @@ def _prep_field(field, gpt2_tokenizer):
   return ids
 
 
+def tf_record_write(writer: tf.io.TFRecordWriter, bytes_: bytes):
+  writer.write(bytes_)
+  writer.flush()
+
+
 def main(argv):
   if len(argv) > 1:
     raise RuntimeError(argv)
@@ -616,6 +621,7 @@ def main(argv):
                 serialized_example
             )
             worker = pool.submit(
+              tf_record_write,
               writers[split][sample_count % _FLAG_NUM_SHARDS.value].write,
               serialized_example
             )
@@ -646,7 +652,6 @@ def main(argv):
 
         LOGGER.debug("Flushing and closing the `%s` writers", split)
         for writer in tqdm.tqdm(writers[split]):
-          writer.flush()
           writer.close()
 
   LOGGER.debug("Done.")
