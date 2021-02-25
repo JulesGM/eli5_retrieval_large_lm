@@ -346,7 +346,7 @@ def main(argv):
   ############################################################################
   writers = {}
   all_paths = {}
-  keys = keys[::-1]
+
   for split in keys:
     maybe_subset = "_subset" if _FLAG_USE_SUBSET.value else ""
     paths = [os.path.join(target_path + maybe_subset, f"{split}_{i}.tfr")
