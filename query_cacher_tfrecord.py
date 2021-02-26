@@ -73,15 +73,11 @@ _FLAG_TPU_NAME = flags.DEFINE_string(
   "Name of the TPU",
 )
 
-_FLAG_JOB_NAME = flags.DEFINE_string(
-    "run_name",
-    None,
-    "Name of the run."
-)
 _FLAG_OUTPUT_PATH = flags.DEFINE_string(
     "output_dir",
     None,
-    "Directory in which to save, on the cloud.")
+    "Directory in which to save, on the cloud."
+)
 _FLAG_RETRIEVER_CONFIG_PATH = flags.DEFINE_string(
     "retriever_config_path",
     None,

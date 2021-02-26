@@ -11,8 +11,8 @@ title () {
 }
 
 
-title "Authenticating with gcloud"
-gcloud auth login
+#title "Authenticating with gcloud"
+#gcloud auth login
 
 
 title "Installing generic dependencies"
@@ -39,8 +39,7 @@ if [[ "$(which python)" == "/usr/bin/python" ]]; then
   which python
   abort
 fi
-python -m pip install tf_nightly cloud-tpu-client \
-  --use-feature=2020-resolver -q 1>/dev/null
+python -m pip install tf_nightly cloud-tpu-client -q 1>/dev/null
 
 
 title "Download the project repo"
@@ -64,8 +63,7 @@ python -m pip install -r requirements.txt -q 1>/dev/null
 popd
 
 
-{
-  echo "alias ls='ls --color -X --group-directories-first'";
-  echo "alias l='ls'";
-  echo "alias ll='ls -l'";
-} >> ~/.bashrc
+echo \
+"alias ls='ls -h --color -X --group-directories-first'
+alias l='ls'
+alias ll='ls -l'" >> ~/.bashrc

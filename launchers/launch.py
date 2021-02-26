@@ -29,6 +29,12 @@ _PROJECT_NAME = "julesgm-research"
 _ZONE_TPUV2 = "us-central1-f"
 _ZONE_TPUV3 = "europe-west4-a"
 
+_FLAG_USER_NAME = flags.DEFINE_string(
+  "username",
+  "jules",
+  "The gcloud username."
+)
+
 _FLAG_IMAGE_FAMILY = flags.DEFINE_string(
   "image-family",
   "tf2-2-4-cpu",
@@ -299,7 +305,7 @@ def main(argv):
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_NAME.value}@{_FLAG_NAME.value}",
-        f"--command=source /home/{_FLAG_NAME.value}/setup.sh"
+        f"--command=source /home/{_FLAG_USER_NAME.value}/setup.sh"
     ],
       "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
     )
