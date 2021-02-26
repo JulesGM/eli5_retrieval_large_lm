@@ -21,8 +21,6 @@ function run () {
     echo " - \"$FLAG\""
   done
 
-  return
-
   pytype "$SCRIPT_PATH" -P . --check-variable-types \
     --check-container-types \
     --check-parameter-types --precise-return
