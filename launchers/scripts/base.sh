@@ -14,7 +14,7 @@ function run () {
   local SCRIPT_PATH="$1"
   local CONFIG_PATH="$2"
   local FLAGS
-  IFS=" " read -a -r FLAGS <<< "$(python3 json_to_args.py "$CONFIG_PATH")"
+  IFS=" " read -r -a FLAGS <<< "$(python3 json_to_args.py "$CONFIG_PATH")"
 
   echo "FLAGS:"
   for FLAG in "${FLAGS[@]}" ; do
