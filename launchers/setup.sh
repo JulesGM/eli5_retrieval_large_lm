@@ -45,6 +45,8 @@ python -m pip install tf_nightly cloud-tpu-client -q 1>/dev/null
 title "Download the project repo"
 git clone https://github.com/JulesGM/eli5_retrieval_large_lm.git \
   --recurse-submodules 1>/dev/null
+git config --global user.email "jgagnonmarchand@gmail.com"
+git config --global user.name "Jules Gagnon-Marchand"
 
 
 title "Testing TPUs"
