@@ -44,6 +44,8 @@ import transformers
 import utils
 
 
+
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
 LOGGER = logging.getLogger(__name__)
 SCRIPT_DIRECTORY = os.path.realpath(os.path.dirname(__file__))
 
@@ -739,12 +741,12 @@ def main(argv):
 
         LOGGER.debug("Batching")
         for batch in dataset_iterator:
-          # LOGGER.debug("Input sentence:\n\"%s\"",
-          #              tokenizer.decode([x for x in batch["input_ids"][0]
-          #                                if x != tokenizer.eos_token_id]))
-          # LOGGER.debug("Label:\n\"%s\"",
-          #              tokenizer.decode([(x if x != -100 else 0)
-          #                                for x in batch["label_ids"][0]]))
+          LOGGER.debug("Input sentence:\n\"%s\"",
+                       tokenizer.decode([x for x in batch["input_ids"][0]
+                                         if x != tokenizer.eos_token_id]))
+          LOGGER.debug("Label:\n\"%s\"",
+                       tokenizer.decode([(x if x != -100 else 0)
+                                         for x in batch["label_ids"][0]]))
 
           if FLAG_DATASET_TYPE.value != "tfr":
             batch = (
@@ -901,13 +903,14 @@ def main(argv):
                 instance_output_dir=instance_output_dir
             )
 
-        secs_since_last_ckpt = time.time()
-        LOGGER.debug("SAVING MODEL - CAUSE: EPOCH")
-        save_model(
-            train_steps=step_counters["train"],
-            model_or_replicas=model_or_replicas,
-            instance_output_dir=instance_output_dir
-        )
+        # secs_since_last_ckpt = time.time()
+        # LOGGER.debug("SAVING MODEL - CAUSE: EPOCH")
+        # save_model(
+        #     train_steps=step_counters["train"],
+        #     model_or_replicas=model_or_replicas,
+        #     instance_output_dir=instance_output_dir
+        # )
+
     #############################################################
     # Post Training Cleanup
     #######################################################################
