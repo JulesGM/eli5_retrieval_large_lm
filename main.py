@@ -21,6 +21,7 @@ import itertools
 import json
 import logging
 import os
+import socket
 import subprocess
 import tempfile
 import time
@@ -240,6 +241,12 @@ FLAG_MAX_LENGTH_GENERATION = flags.DEFINE_integer(
     None,
     "Maximum length of the generation."
 )
+FLAG_GSUTIL_PATH = flags.DEFINE_string(
+  "gsutil-path",
+  "/Users/$HOSTNAME/Applications/google-cloud-sdk/bin/gsutil",
+  "Location of the `gsutil` binary to use. Will replace $HOSTNAME by the current "
+  "hostname with `str.replace`."
+)
 
 
 ################################################################################
@@ -381,7 +388,7 @@ def save_model(
     model_or_replicas.save_pretrained(os.path.join(save_directory, "model"))
     subprocess.run(
         [
-            "/root/google-cloud-sdk/bin/gsutil",
+            FLAG_GSUTIL_PATH.value.replace("$HOSTNAME", socket.gethostname()),
             "-m",
             "cp",
             "-R",
