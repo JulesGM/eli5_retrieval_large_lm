@@ -74,44 +74,23 @@ def load_model(
   if distribute_mode not in constants.DistributeModeChoices.choices():
     raise ValueError(f"Unsupported distribute_mode: `{distribute_mode}`")
 
-  if distribute_mode in constants.STRATEGIES:
-    ##############################################################################
-    # Model creation in case we are using tf.distribute.Strategies.
-    ##############################################################################
-    # We currently don't support GPU strategies, though adding them would be
-    # simple.
-
-    if distribute_mode == constants.DistributeModeChoices.tpustrategy:
-      strategy = tf.distribute.TPUStrategy(
-          tpu_setup.resolver,
-      )
-    elif distribute_mode == constants.DistributeModeChoices.onedevicestrategy:
-      # Test mode with a single device, possibly a CPU.
-      strategy = tf.distribute.OneDeviceStrategy(tf_utils.devices_to_use()[0])
-    else:
-      raise NotImplementedError(distribute_mode)
-
-    with strategy.scope():
-      config: CreateModelReturn = MODEL_FACTORIES[model_key](
-          model_key,
-          distribute_mode,
-          None  # The replicas are created by the tf.distribute.Strategy obj
-      )
-      config.strategy = strategy
-
+  if distribute_mode == constants.DistributeModeChoices.tpustrategy:
+    strategy = tf.distribute.TPUStrategy(
+        tpu_setup.resolver,
+    )
+  elif distribute_mode == constants.DistributeModeChoices.onedevicestrategy:
+    # Test mode with a single device, possibly a CPU.
+    strategy = tf.distribute.OneDeviceStrategy(tf_utils.devices_to_use()[0])
   else:
-    ############################################################################
-    # Model creation in the case we aren't using strategies.
-    ############################################################################
-    # In this case, most of the parallelism work is done inside of the specific
-    # model creation functions.
+    raise NotImplementedError(distribute_mode)
 
+  with strategy.scope():
     config: CreateModelReturn = MODEL_FACTORIES[model_key](
         model_key,
         distribute_mode,
-        num_replicas,
+        None  # The replicas are created by the tf.distribute.Strategy obj
     )
-    config.strategy = None
+    config.strategy = strategy
   return config
 
 
@@ -130,75 +109,10 @@ def _create_gpt2(
   LOGGER.debug("Done loading the tokenizer.")
   LOGGER.debug("Loading the model weights.")
 
-  ##############################################################################
-  # Build the model(s) if we are splitting the model between devices per replica
-  ##############################################################################
-  if distribute_mode in {
-      constants.DistributeModeChoices.split_and_data_parallel,
-      constants.DistributeModeChoices.split_vertically
-  }:
-    # TODO(julesgm): This part needs to be reworked.
-    raise NotImplementedError()
-
-    # target_devices_info = tf_utils.InformationOnDevices()
-    ############################################################################
-    # Build the model function
-    ############################################################################
-    # if tf_utils.devices_to_use()[0].device_type == "CPU":
-    #
-    #  # Edge case of testing on a CPU-only device. Mostly for local debugging.
-    #  # Our compute node tooling doesn't work in this case.
-    #   def make_model(data_parallelism_rank=0):
-    # pylint: disable=unused-argument
-    #     model = modeling_tf_gpt2_model_par.
-    #     TFGPT2LMHeadModel.from_pretrained(
-    #         tf_model_path,
-    #         config=config,
-    #         cache_dir=cache_dir,
-    #         devices=tf_utils.devices_to_use(),
-    #         cpu=tf_utils.devices_to_use()[0],
-    #     )
-    #     return model
-    # else:
-    #   # Regular case with GPUs or TPUs.
-    #   def make_model(data_parallelism_rank=0):
-    #     # TODO(julesgm): This part needs work.
-    #     model = modeling_tf_gpt2_model_par.
-    #     TFGPT2LMHeadModel.from_pretrained(
-    #         tf_model_path,
-    #         config=config,
-    #         cache_dir=cache_dir,
-    #         devices=target_devices_info.devices_by_device_id[
-    #             data_parallelism_rank],
-    #         cpu=tf_utils.device_mapping().CPUs[1],
-    #     )
-    #     return model
-
-    # ############################################################################
-    # # Build the model(s)
-    # ############################################################################
-    # if distribute_mode == constants.
-    # DistributeModeChoices.split_and_data_parallel:
-    #   # Multiple instances if we are doing data parallelism
-    #   if num_replicas > target_devices_info.num_devices:
-    #     raise ValueError("num_replicas larger than "
-    #                      "target_devices_info.num_devices. \n"
-    #                      f" - num_replicas: {num_replicas} \n"
-    #                      f" - num_devices:
-    #                      {target_devices_info.num_devices}")
-    #   model = [make_model(rank) for rank
-    #            in range(num_replicas)]
-    # else:
-    #   model = make_model()
-
-  ##############################################################################
-  # Build the model instance otherwise
-  ##############################################################################
-  else:
-    with utils.log_duration(LOGGER, "main", "Loading the model."):
-      model = transformers.TFGPT2LMHeadModel.from_pretrained(
-          model_name,
-          )
+  with utils.log_duration(LOGGER, "main", "Loading the model."):
+    model = transformers.TFGPT2LMHeadModel.from_pretrained(
+        model_name,
+        )
 
   logging.debug("Done loading the %s model.", model_name)
   return CreateModelReturn(
@@ -279,138 +193,72 @@ def create_lm_ds_kilt_eli5(
       enable_debug_checks=enable_debug_checks,
       max_length_generation=max_length_generation,
   )
-  if dataset_type == constants.DatasetTypeChoices.hdf5:
-    raise ValueError("The hdf5 dataset type is not supported anymore."
-                     "It is strictly worse than tfr.")
-    #
-    # with utils.log_duration(LOGGER, "create_lm_ds_kilt_eli5",
-    # "loading codes.h5"):
-    #   input_file = h5py.File(tf.io.gfile.GFile(db_path, "rb"),
-    #   "r")[split]
-    #
-    # if use_subset:
-    #   new = {}
-    #   for k, v in input_file.items():
-    #     new[k] = v[:subset_size]
-    #   input_file = new
-    #
-    # def load(field_name):
-    #   if field_name == constants.CTH5Fields.gpt2_retrieved_ids:
-    #     return input_file[field_name][:, :retrieval_bank_size]
-    #   else:
-    #     return input_file[field_name]
-    #
-    # with utils.log_duration(
-    #     LOGGER, "create_lm_ds_kilt_eli5", "gpt2_question_ids_inputs"
-    # ):
-    #   gpt2_question_ids_inputs = load(
-    #       constants.CTH5Fields.gpt2_question_ids_inputs
-    #   )
-    #
-    # with utils.log_duration(
-    #     LOGGER,
-    #     "create_lm_ds_kilt_eli5",
-    #     constants.CTH5Fields.gpt2_answer_ids_inputs
-    # ):
-    #   answer_ids_inputs = load(
-    #       constants.CTH5Fields.gpt2_answer_ids_inputs
-    #   )
-    #
-    # stacks = {
-    #     constants.CTH5Fields.gpt2_question_ids_inputs:
-    #     gpt2_question_ids_inputs,
-    #     constants.CTH5Fields.gpt2_answer_ids_inputs:
-    #     answer_ids_inputs,
-    # }
-    #
-    # if approach_type == constants.ApproachTypeChoices.cached_pretok:
-    #   with utils.log_duration(
-    #       LOGGER, "create_lm_ds_kilt_eli5", constants.CTH5Fields.distances
-    #   ):
-    #     stacks[constants.CTH5Fields.distances] = load(
-    #         constants.CTH5Fields.distances
-    #     )
-    #   with utils.log_duration(
-    #       LOGGER,
-    #       "create_lm_ds_kilt_eli5",
-    #       constants.CTH5Fields.gpt2_retrieved_ids
-    #   ):
-    #     stacks[constants.CTH5Fields.gpt2_retrieved_ids] = load(
-    #         constants.CTH5Fields.gpt2_retrieved_ids,
-    #         retrieval_bank_size=retrieval_bank_size,
-    #     )
-    #
-    # LOGGER.debug("from_tensor_slices")
-    #
-    # ds = tf.data.Dataset.from_tensor_slices(stacks)
-  elif dataset_type == constants.DatasetTypeChoices.tfr:
-    glob_pattern = os.path.join(tfr_prefix, f"{split}*")
-    filenames = list(tf.io.gfile.glob(glob_pattern))
-    if not filenames:
-      raise RuntimeError(
-          f"filnames is empty. Glob pattern was: {glob_pattern}"
-      )
-
-    ds = tf.data.TFRecordDataset(
-        filenames=filenames,
-        num_parallel_reads=tf.data.experimental.AUTOTUNE,
+  utils.check_equal(dataset_type, constants.DatasetTypeChoices.tfr)
+  glob_pattern = os.path.join(tfr_prefix, f"{split}*")
+  filenames = list(tf.io.gfile.glob(glob_pattern))
+  if not filenames:
+    raise RuntimeError(
+        f"filnames is empty. Glob pattern was: {glob_pattern}"
     )
 
-    description: Dict[str, tf.io.FixedLenFeature] = {
-        constants.CTH5Fields.distances:
-            tf.io.FixedLenFeature((), tf.string),
-        constants.CTH5Fields.gpt2_retrieved_ids:
-            tf.io.FixedLenFeature((), tf.string),
-        constants.CTH5Fields.gpt2_question_ids_inputs:
-            tf.io.FixedLenFeature((), tf.string),
-    }
-    if split != constants.SplitChoices.test:
-      description[
-          constants.CTH5Fields.gpt2_answer_ids_inputs
-      ] = tf.io.FixedLenFeature((), tf.string)
+  ds = tf.data.TFRecordDataset(
+      filenames=filenames,
+      num_parallel_reads=tf.data.experimental.AUTOTUNE,
+  )
 
-    feature_dtypes: Dict[str, tf.dtypes] = {
-        constants.CTH5Fields.distances:
-            tf.float32,
-        constants.CTH5Fields.gpt2_retrieved_ids:
-            tf.int32,
-        constants.CTH5Fields.gpt2_question_ids_inputs:
-            tf.int32,
-    }
-    if split != constants.SplitChoices.test:
-      feature_dtypes[
-          constants.CTH5Fields.gpt2_answer_ids_inputs
-      ] = tf.int32
+  description: Dict[str, tf.io.FixedLenFeature] = {
+      constants.CTH5Fields.distances:
+          tf.io.FixedLenFeature((), tf.string),
+      constants.CTH5Fields.gpt2_retrieved_ids:
+          tf.io.FixedLenFeature((), tf.string),
+      constants.CTH5Fields.gpt2_question_ids_inputs:
+          tf.io.FixedLenFeature((), tf.string),
+  }
+  if split != constants.SplitChoices.test:
+    description[
+        constants.CTH5Fields.gpt2_answer_ids_inputs
+    ] = tf.io.FixedLenFeature((), tf.string)
 
-    feature_shape: Dict[str, Tuple[int, Ellipsis]] = {
-        constants.CTH5Fields.distances:
-            (10,),
-        constants.CTH5Fields.gpt2_retrieved_ids:
-            (10, context_window_size,),
-        constants.CTH5Fields.gpt2_question_ids_inputs:
-            (context_window_size,),
-    }
-    if split != constants.SplitChoices.test:
-      feature_shape[constants.CTH5Fields.gpt2_answer_ids_inputs] = (
-          context_window_size,
+  feature_dtypes: Dict[str, tf.dtypes] = {
+      constants.CTH5Fields.distances:
+          tf.float32,
+      constants.CTH5Fields.gpt2_retrieved_ids:
+          tf.int32,
+      constants.CTH5Fields.gpt2_question_ids_inputs:
+          tf.int32,
+  }
+  if split != constants.SplitChoices.test:
+    feature_dtypes[
+        constants.CTH5Fields.gpt2_answer_ids_inputs
+    ] = tf.int32
+
+  feature_shape: Dict[str, Tuple[int, Ellipsis]] = {
+      constants.CTH5Fields.distances:
+          (10,),
+      constants.CTH5Fields.gpt2_retrieved_ids:
+          (10, context_window_size,),
+      constants.CTH5Fields.gpt2_question_ids_inputs:
+          (context_window_size,),
+  }
+  if split != constants.SplitChoices.test:
+    feature_shape[constants.CTH5Fields.gpt2_answer_ids_inputs] = (
+        context_window_size
+    )
+
+  @tf.function
+  def parse(sample):
+    example = tf.io.parse_single_example(sample, description)
+    output = {}
+    for k, v in example.items():
+      output[k] = tf.io.parse_tensor(v, out_type=feature_dtypes[k])
+      output[k].set_shape(feature_shape[k])
+    return output
+
+  ds = ds.map(
+      parse,
+      num_parallel_calls=tf.data.experimental.AUTOTUNE,
+      deterministic=False
       )
-
-    @tf.function
-    def parse(sample):
-      example = tf.io.parse_single_example(sample, description)
-      output = {}
-      for k, v in example.items():
-        output[k] = tf.io.parse_tensor(v, out_type=feature_dtypes[k])
-        output[k].set_shape(feature_shape[k])
-      return output
-
-    ds = ds.map(
-        parse,
-        num_parallel_calls=tf.data.experimental.AUTOTUNE,
-        deterministic=False
-        )
-  else:
-    raise RuntimeError(dataset_type)
 
   if repeat:
     ds = ds.repeat()

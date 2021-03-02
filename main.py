@@ -245,7 +245,11 @@ FLAG_MAX_LENGTH_GENERATION = flags.DEFINE_integer(
     "Maximum length of the generation."
 )
 
-
+FLAG_SAVE_PERIOD_MIN = flags.DEFINE_integer(
+    "save-period-min",
+    20,
+    "How many minutes to wait between saves."
+)
 ################################################################################
 # Training and evaluation step functions.
 ################################################################################
@@ -595,12 +599,12 @@ def main(argv):
             f"FLAG_DATASET_NAME.value unsupported: `{FLAG_DATASET_NAME.value}`"
         )
 
-    make_training_dataset: Callable[Ellipsis, tf.data.Dataset] = functools.partial(
+    make_training_dataset: Callable[..., tf.data.Dataset] = functools.partial(
         call_lm_preproc,
         split="train",
         repeat=False,
     )
-    make_eval_dataset: Callable[Ellipsis, tf.data.Dataset] = functools.partial(
+    make_eval_dataset: Callable[..., tf.data.Dataset] = functools.partial(
         call_lm_preproc,
         split="eval",
         repeat=True,
@@ -639,9 +643,11 @@ def main(argv):
 
     secs_since_last_ckpt = time.time()
     # Model checkpoints are saved to the tmp_directory and then rsynced to GCS
+
     ##########################################################################
-    # Prepare the different logging facilities
+    # Prepare the statistics and the logging facilities.
     ##########################################################################
+    # Tensorboard
     train_log_dir = os.path.join(instance_output_dir, "tensorboard", "train")
     eval_log_dir = os.path.join(instance_output_dir, "tensorboard", "eval")
     flags_log_dir = os.path.join(instance_output_dir, "tensorboard", "params")
@@ -658,6 +664,7 @@ def main(argv):
           step=0
           )
 
+    # Different information to log.
     ma_loss = dict(
         train=utils.MovingAverage(0.9),
         eval=utils.MovingAverage(0.9)
@@ -666,12 +673,19 @@ def main(argv):
     batch_counters = dict(train=0, eval=0)
     prev_batch_end = time.time()
 
+
+    ############################################################################
+    # Create the Eval DS object.
+    # ==========================================================================
     # The eval ds has no real concept of epoch, repeats forever, shuffling
-    # each time it reaches its end
+    # each time it reaches its end.
+    ############################################################################
+    # Create
     with utils.log_duration(LOGGER, "main", "All of make_eval_dataset"):
       eval_ds_instance = make_eval_dataset(
           random_seed=rg.integers(-2**63, 2**63 - 1),
       )
+    # Maybe distribute
     LOGGER.debug("Distributing the eval dataset to the replicas.")
     if FLAG_DATASET_TYPE.value == "tfr":
       eval_ds_instance = (
@@ -679,13 +693,19 @@ def main(argv):
               eval_ds_instance
           )
       )
-
-    LOGGER.debug("Done distributing the eval dataset to the replcias.")
+    # Start the iteration. We step by calling `next(...)`.
+    LOGGER.debug("Done distributing the eval dataset to the replicas.")
     eval_ds_instance = iter(eval_ds_instance)
 
-    ##########################################################################
+    step_function = dict(train=training_step, eval=evaluation_step)
+
+    ############################################################################
     # Training Loop
-    ##########################################################################
+    # ==========================================================================
+    # Create a new training dataset object that lasts for one epoch.
+    # This is different from the eval training dataset object, which loops
+    # forever.
+    ############################################################################
     for epoch in itertools.count():
       ####################################################################
       # Epoch Setup
@@ -734,19 +754,20 @@ def main(argv):
               train_ds_instance, FLAG_BATCHES_BETWEEN_EVALS.value
           )
         else:
-          # The evaluation DS is tiny, so we reshuffle and take a random
+          # The evaluation DS is tiny, so we reshuffle and take a random sample
           dataset_iterator = itertools.islice(
               eval_ds_instance, FLAG_NUMBER_EVAL_BATCHES.value
           )
 
         LOGGER.debug("Batching")
         for batch in dataset_iterator:
-          LOGGER.debug("Input sentence:\n\"%s\"",
-                       tokenizer.decode([x for x in batch["input_ids"][0]
-                                         if x != tokenizer.eos_token_id]))
-          LOGGER.debug("Label:\n\"%s\"",
-                       tokenizer.decode([(x if x != -100 else 0)
-                                         for x in batch["label_ids"][0]]))
+          for i in range(len(batch["input_ids"])):
+            LOGGER.debug("Input sentence:\n\"%s\"",
+                         tokenizer.decode([x for x in batch["input_ids"][i]
+                                           if x != tokenizer.eos_token_id]))
+            LOGGER.debug("Label:\n\"%s\"",
+                         tokenizer.decode([(x if x != -100 else 0)
+                                           for x in batch["label_ids"][i]]))
 
           if FLAG_DATASET_TYPE.value != "tfr":
             batch = (
@@ -765,64 +786,28 @@ def main(argv):
           input_ids = batch["input_ids"]
           label_ids = batch["label_ids"]
 
-          ####################################################################
-          # Training Step
-          ####################################################################
-          step_counters[split] += (
-              FLAG_BATCH_SIZE.value * actual_num_replicas
+          # Per split step counter
+          step_counters[split] += FLAG_BATCH_SIZE.value * actual_num_replicas
+          batch_counters[split] += 1
+
+          ######################################################################
+          # Model step function.
+          ######################################################################
+          step_function_kwargs = dict(
+                input_ids=input_ids,
+                label_ids=label_ids,
+            )
+          utils.print_mem("[%s] - Mem before `strategy.run`", LOGGER)
+          LOGGER.debug("[%s] - Calling `strategy.run`", split)
+          loss = model_specific.strategy.run(
+            step_function[split],
+            kwargs=step_function_kwargs
           )
-
-          if split == "train":
-            batch_counters[split] += 1
-            training_kwargs = dict(
-                input_ids=input_ids,
-                label_ids=label_ids,
-            )
-
-            if model_specific.strategy:
-              utils.print_mem("before running", LOGGER)
-
-              LOGGER.debug("Training, Calling strategy.run")
-              loss = model_specific.strategy.run(
-                  training_step,
-                  kwargs=training_kwargs
-              )
-              LOGGER.debug("Training, Done with strategy.run")
-              utils.print_mem("after running", LOGGER)
-
-            else:
-              loss = training_step(**training_kwargs)  # pytype: disable=wrong-arg-count
-              # If we are in the strategy-free data parallel mode, we need
-              # to change the weights of all replicas to those of the model at
-              # index 0
-              if (
-                  FLAG_DISTRIBUTE_MODE.value ==
-                  constants.DistributeModeChoices.split_and_data_parallel
-              ):
-                for replica in model_or_replicas[1:]:
-                  replica.set_weights(model_or_replicas[0].get_weights())
+          LOGGER.debug("[%s] - Done `strategy.run`", split)
+          utils.print_mem("[%s] - Mem after `strategy.run`", LOGGER)
 
           ####################################################################
-          # Evaluation Step
-          ####################################################################
-          elif split == "eval":
-            evaluation_kwargs = dict(
-                input_ids=input_ids,
-                label_ids=label_ids,
-            )
-
-            if model_specific.strategy:
-              loss = model_specific.strategy.run(
-                  evaluation_step,
-                  kwargs=evaluation_kwargs
-              )
-            else:
-              loss = evaluation_step(**evaluation_kwargs)
-          else:
-            raise ValueError(f"Unexpected value for split: {split}")
-
-          ####################################################################
-          # Logging
+          # End of logging step code / Logging and saving the model.
           ####################################################################
           if (FLAG_DISTRIBUTE_MODE.value in
               constants.PURE_DATA_PARALLEL_STRATEGIES):
@@ -836,13 +821,12 @@ def main(argv):
           else:
             average_loss = float(loss.numpy())
 
-          # tf.debugging.check_numerics(loss)
+          tf.debugging.check_numerics(loss)
           now = time.time()
           batch_duration = now - prev_batch_end
           prev_batch_end = now
           ma_loss[split].update(average_loss)
 
-          # Actual logging
           LOGGER.info("Epoch: # %d", epoch)
           LOGGER.info("Tensorboard_dir: %s", instance_output_dir)
           LOGGER.info("Batch: %s # %d", split, batch_counters[split])
@@ -869,18 +853,6 @@ def main(argv):
                       batch_duration).format()
               )
           )
-          if FLAG_DISTRIBUTE_MODE.value in constants.DATA_PARALLEL_DMC:
-            LOGGER.info(
-                "%(split)s Duration per sample:  %(duration)s",
-                dict(
-                    split=split,
-                    duration=utils.TimeStamp.from_seconds(
-                        batch_duration / (
-                            FLAG_BATCH_SIZE.value * actual_num_replicas
-                        )
-                    )
-                )
-            )
 
           # Write to Tensorboard
           with writers[split].as_default():
@@ -892,9 +864,14 @@ def main(argv):
             )
           writers[split].flush()
 
-          # Save every N min
-          if (time.time() - secs_since_last_ckpt) / (60 * 20) >= 1:
-            dur = (time.time() - secs_since_last_ckpt) / (60 * 20)
+
+          ######################################################################
+          # Save every `FLAG_SAVE_PERIOD_MIN.value` minutes.
+          ######################################################################
+          if (time.time() - secs_since_last_ckpt) / (
+              60 * FLAG_SAVE_PERIOD_MIN.value) >= 1:
+            dur = (time.time() - secs_since_last_ckpt) / (
+                60 * FLAG_SAVE_PERIOD_MIN.value)
             secs_since_last_ckpt = time.time()
             LOGGER.debug("SAVING MODEL - CAUSE: DURATION - %0.2f min", dur)
             save_model(
@@ -902,14 +879,6 @@ def main(argv):
                 model_or_replicas=model_or_replicas,
                 instance_output_dir=instance_output_dir
             )
-
-        # secs_since_last_ckpt = time.time()
-        # LOGGER.debug("SAVING MODEL - CAUSE: EPOCH")
-        # save_model(
-        #     train_steps=step_counters["train"],
-        #     model_or_replicas=model_or_replicas,
-        #     instance_output_dir=instance_output_dir
-        # )
 
     #############################################################
     # Post Training Cleanup

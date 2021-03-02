@@ -18,11 +18,8 @@ import utils
 
 
 class DistributeModeChoices(utils.FlagChoices):
-  mirroredstrategy = "MirroredStrategy"
-  none = "None"
+  # mirroredstrategy = "MirroredStrategy"
   onedevicestrategy = "OneDeviceStrategy"
-  split_vertically = "split_vertically"
-  split_and_data_parallel = "split_vertically_data_parallel"
   tpustrategy = "TPUStrategy"
 
 
@@ -117,5 +114,6 @@ class SplitChoices(utils.FlagChoices):
 
 
 class DatasetTypeChoices(utils.FlagChoices):
+  """There used to be other options here.
+  """
   tfr = "tfr"
-  hdf5 = "hdf5"
