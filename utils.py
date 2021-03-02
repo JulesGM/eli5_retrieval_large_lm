@@ -236,12 +236,13 @@ def from_json_file(path):
     return json.loads(fin.read())
 
 
-def to_json_file(path, obj, indent = 4):
+def to_json_file(path: PathType, obj, indent : int = 4):
   """Saves to a json file.
 
   Args:
     path: Where to save.
     obj: The object to save
+    indent: Number of spaces to use as indentation.
 
   Returns:
     None

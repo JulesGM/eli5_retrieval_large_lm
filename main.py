@@ -381,8 +381,8 @@ def save_model(
         time.strftime(f"{train_steps}_ckpt_%Y%m%d-%H%M%S")
     )
     model_or_replicas.save_pretrained(os.path.join(save_directory, "model"))
-    subprocess.run(
-      shlex.join(
+
+    command = shlex.join(
         [
             "gsutil",
             "-m",
@@ -390,7 +390,11 @@ def save_model(
             "-R",
             save_directory,
             instance_output_dir,
-        ]),
+        ]
+    )
+    LOGGER.debug("Sending model. Command:\n\t- `%s`", command)
+    subprocess.run(
+      command,
       shell=True,
       # `shell=True` makes it so we let the shell find which gsutil to use.
       # `shlex.join` makes the join safe.
@@ -428,6 +432,7 @@ def main(argv):
   np.random.seed(FLAG_RANDOM_SEED.value)
 
   # Prepare the instance output directory path and save the config there
+  # Prepare the path
   folder_name = time.strftime(
       f"{FLAG_RUN_NAME.value}_{FLAG_APPROACH_TYPE.value}_%Y%m%d-%H%M%S"
   )
@@ -435,9 +440,13 @@ def main(argv):
   if not instance_output_dir.endswith("/"):
     instance_output_dir += "/"
   json_target = os.path.join(instance_output_dir, "training_params.json")
+
+  # Make the folder if we're not on gcloud
   if not json_target.strip().startswith("gs://"):
     subprocess.check_call(["mkdir", "-p", instance_output_dir])
-  utils.to_json_file(json_target, instance_output_dir)
+
+  # Safe the config file
+  utils.to_json_file(json_target, flags_dict)
 
   ##############################################################################
   # Initialization and Configuration of the Devices.
@@ -881,9 +890,11 @@ def main(argv):
             )
           writers[split].flush()
 
-          # Save every 5 min
+          # Save every N min
           if (time.time() - secs_since_last_ckpt) / (60 * 20) >= 1:
+            dur = (time.time() - secs_since_last_ckpt) / (60 * 20)
             secs_since_last_ckpt = time.time()
+            LOGGER.debug("SAVING MODEL - CAUSE: DURATION - %0.2f min", dur)
             save_model(
                 train_steps=step_counters["train"],
                 model_or_replicas=model_or_replicas,
@@ -891,6 +902,7 @@ def main(argv):
             )
 
         secs_since_last_ckpt = time.time()
+        LOGGER.debug("SAVING MODEL - CAUSE: EPOCH")
         save_model(
             train_steps=step_counters["train"],
             model_or_replicas=model_or_replicas,
