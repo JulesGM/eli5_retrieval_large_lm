@@ -14,7 +14,7 @@
   "batch_size": 2,
   "batch_split": 1,
   "model_key": "gpt2-xl",
-  "distribute_mode": "OneDeviceStrategy",
+  "distribute_mode": "TPUStrategy",
 
   "retrieval_temperature": 0.03,
   "num_retrievals": 5,
