@@ -1,7 +1,7 @@
 # set -x
 set -e
+LINE="$(python3 -c "import os; print('#' * int(os.popen('stty size', 'r').read().split()[1]))")"
 TPU_NAME=jules
-LINE="$(python3 -c "import os; print('#' * os.get_terminal_size(0)[0])")"
 
 
 title () {

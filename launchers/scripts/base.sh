@@ -1,6 +1,5 @@
 set -e
-
-LINE="$(python3 -c "import os; print('#' * os.get_terminal_size(0)[0])")"
+LINE="$(python3 -c "import os; print('#' * int(os.popen('stty size', 'r').read().split()[1]))")"
 
 function h1 () {
   echo "$LINE"
