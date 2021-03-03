@@ -119,7 +119,7 @@ FLAG_EXPERIMENTAL_COMPILE = flags.DEFINE_bool(
 )
 FLAG_DISTRIBUTE_MODE = flags.DEFINE_enum(
     "distribute_mode",
-    constants.DistributeModeChoices.split_vertically,
+    constants.DistributeModeChoices.onedevicestrategy,
     constants.DistributeModeChoices.choices(),
     "What type of infrastructure to use to distribute the work."
 )
