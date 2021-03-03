@@ -11,7 +11,7 @@
   "dataset_type": "tfr",
 
   "use_helper_words": true,
-  "batch_size": 1,
+  "batch_size": 2,
   "batch_split": 1,
   "model_key": "gpt2-xl",
   "distribute_mode": "OneDeviceStrategy",
