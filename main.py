@@ -291,12 +291,7 @@ def build_regular_training_step(
       grads = tape.gradient(average_loss, model.trainable_variables)
       optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
-    if (FLAG_DISTRIBUTE_MODE.value ==
-        constants.DistributeModeChoices.split_vertically):
-      with tf.device("/job:localhost/replica:0/task:0/device:CPU:0"):
-        return tf.math.reduce_mean(losses)
-    else:
-      return tf.math.reduce_mean(losses)
+    return tf.math.reduce_mean(losses)
   return training_step
 
 
