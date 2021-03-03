@@ -621,21 +621,12 @@ def main(argv):
         experimental_relax_shapes=not FLAG_INPUT_FIXED_SIZE.value
     )
 
-    if (FLAG_DISTRIBUTE_MODE.value ==
-        constants.DistributeModeChoices.split_and_data_parallel):
-      if not isinstance(model_or_replicas, list):
-        raise RuntimeError(type(model_or_replicas))
-      training_step = build_manual_data_parallel_training_step(
-          model_or_replicas, optimizer, tf_function_flags
-      )
-
-    else:
-      training_step = build_regular_training_step(
-          model_or_replicas,
-          optimizer,
-          strategy=model_specific.strategy,
-          tf_function_kwargs=tf_function_flags
-      )
+    training_step = build_regular_training_step(
+        model_or_replicas,
+        optimizer,
+        strategy=model_specific.strategy,
+        tf_function_kwargs=tf_function_flags
+    )
 
     evaluation_step = build_evaluation_step(
         model_or_replicas, tf_function_flags
