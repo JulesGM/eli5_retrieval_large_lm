@@ -26,14 +26,13 @@ class DistributeModeChoices(utils.FlagChoices):
 STRATEGIES = frozenset([
     DistributeModeChoices.onedevicestrategy,
     DistributeModeChoices.tpustrategy,
-    DistributeModeChoices.mirroredstrategy
+#    DistributeModeChoices.mirroredstrategy
 ])
 
 
 DATA_PARALLEL_DMC = frozenset([
     DistributeModeChoices.tpustrategy,
-    DistributeModeChoices.mirroredstrategy,
-    DistributeModeChoices.split_and_data_parallel
+#    DistributeModeChoices.mirroredstrategy,
 ])
 
 
@@ -41,13 +40,13 @@ DATA_PARALLEL_DMC = frozenset([
 # This is (was) for when we also used tf.distribute.TPUMPStrategy
 PURE_DATA_PARALLEL_STRATEGIES = frozenset([
     DistributeModeChoices.tpustrategy,
-    DistributeModeChoices.mirroredstrategy,
+#    DistributeModeChoices.mirroredstrategy,
 ])
 
 
 DATA_PARALLEL_STRATEGIES = frozenset([
     DistributeModeChoices.tpustrategy,
-    DistributeModeChoices.mirroredstrategy,
+#    DistributeModeChoices.mirroredstrategy,
 ])
 
 
