@@ -46,7 +46,7 @@ class DevicesMapType:
   # pylint: enable=invalid-name
 
 
-def init_tpus(tpu_name = None):
+def init_tpus(tpu_name=None):
   """Initializes the connection with the TPUs."""
   try:
     if tpu_name:

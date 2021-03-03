@@ -3,6 +3,5 @@
   "instance-type": "n1-standard-32",
   "preemptible-vm": true,
   "use-tpus": true,
-  "preemptible-tpu": false
-
+  "preemptible-tpu": false,
 }

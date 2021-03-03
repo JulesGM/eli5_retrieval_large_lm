@@ -250,6 +250,12 @@ FLAG_SAVE_PERIOD_MIN = flags.DEFINE_integer(
     20,
     "How many minutes to wait between saves."
 )
+
+_FLAG_TPU_NAME = flags.DEFINE_string(
+  "tpu-name",
+  None,
+  "Name of the TPU to use."
+)
 ################################################################################
 # Training and evaluation step functions.
 ################################################################################
@@ -448,7 +454,7 @@ def main(argv):
   tpu_setup = None
   # current_acelerator_type is always "CPU" in the beginning with TPUs
   if tf_utils.current_accelerator_type() == "CPU":
-    tpu_setup = tf_utils.init_tpus()
+    tpu_setup = tf_utils.init_tpus(FLAG_TPU_NAME.value)
 
   LOGGER.debug("Devices we are computing on:\n%s",
                utils.wrap_iterable(map(str, tf_utils.devices_to_use())))

@@ -21,5 +21,6 @@
   "approach_type": "naked_lm",
   "learning_rate": 5E-5,
 
-  "max_length_generation": 350
+  "max_length_generation": 350,
+  "tpu-name": "jules"
 }
