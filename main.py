@@ -790,14 +790,14 @@ def main(argv):
                 input_ids=input_ids,
                 label_ids=label_ids,
             )
-          utils.print_mem("[%s] - Mem before `strategy.run`", LOGGER)
+          utils.print_mem(f"[{split}] - Mem before `strategy.run`", LOGGER)
           LOGGER.debug("[%s] - Calling `strategy.run`", split)
           loss = model_specific.strategy.run(
             step_function[split],
             kwargs=step_function_kwargs
           )
           LOGGER.debug("[%s] - Done `strategy.run`", split)
-          utils.print_mem("[%s] - Mem after `strategy.run`", LOGGER)
+          utils.print_mem(f"[{split}] - Mem after `strategy.run`", LOGGER)
 
           ####################################################################
           # End of logging step code / Logging and saving the model.
@@ -805,10 +805,11 @@ def main(argv):
           if (FLAG_DISTRIBUTE_MODE.value in
               constants.PURE_DATA_PARALLEL_STRATEGIES):
             utils.check_equal(len(loss.values), actual_num_replicas)
-            LOGGER.debug("Split: %s", split)
-            LOGGER.debug("Real num replicas: %s", actual_num_replicas)
-            LOGGER.debug("Loss: %s", loss)
-            LOGGER.debug("Loss values: %s", loss.values)
+            LOGGER.debug(
+              "[%s] - Real num replicas: %s",  split, actual_num_replicas
+            )
+            LOGGER.debug("[%s] - Loss: %s",  split, loss)
+            LOGGER.debug("[%s] - Loss values: %s", split, loss.values)
 
             average_loss = float(tf.math.reduce_mean(loss.values).numpy())
           else:
@@ -820,26 +821,26 @@ def main(argv):
           prev_batch_end = now
           ma_loss[split].update(average_loss)
 
-          LOGGER.info("Epoch: # %d", epoch)
-          LOGGER.info("Tensorboard_dir: %s", instance_output_dir)
-          LOGGER.info("Batch: %s # %d", split, batch_counters[split])
-          LOGGER.info("Step: %s # %d", split, step_counters[split])
+          LOGGER.info("[$s] - Epoch: # %d", split, epoch)
+          LOGGER.info("[$s] - Tensorboard_dir: %s", split, instance_output_dir)
+          LOGGER.info("[$s] - Batch: %s # %d", split, batch_counters[split])
+          LOGGER.info("[$s] - Step: %s # %d", split, step_counters[split])
           if FLAG_USE_SUBSET.value:
             LOGGER.warning(">> USING A SUBSET OF THE DATASET <<")
           LOGGER.info(
-              "%(split)s Batch loss:           %(metric)f",
+              "[%(split)s] - Batch loss:           %(metric)f",
               dict(split=split, metric=average_loss)
           )
           LOGGER.info(
-              "%(split)s Moving average loss:  %(metric)f",
+              "[%(split)s] - Moving average loss:  %(metric)f",
               dict(split=split, metric=ma_loss[split].average)
           )
           LOGGER.info(
-              "%(split)s Moving average ppl:   %(metric)f",
+              "[%(split)s] - Moving average ppl:   %(metric)f",
               dict(split=split, metric=np.exp(ma_loss[split].average))
           )
           LOGGER.info(
-              "%(split)s Batch duration:       %(duration)s",
+              "[%(split)s] - Batch duration:       %(duration)s",
               dict(
                   split=split,
                   duration=utils.TimeStamp.from_seconds(
