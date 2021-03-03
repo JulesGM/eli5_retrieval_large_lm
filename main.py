@@ -225,9 +225,9 @@ FLAG_SUBSET_SIZE = flags.DEFINE_integer(
 
 FLAG_DATASET_TYPE = flags.DEFINE_enum(
     "dataset_type",
-    constants.DatasetTypeChoices.hdf5,
+    constants.DatasetTypeChoices.tfr,
     constants.DatasetTypeChoices.choices(),
-    "Whether to use tfrecords or hdf5 as an input method."
+    "Use TFR. Used to have more choices."
 )
 FLAG_QTY_SHUFFLE = flags.DEFINE_integer(
     "qty_shuffle",
