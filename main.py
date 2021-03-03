@@ -754,13 +754,13 @@ def main(argv):
 
         LOGGER.debug("Batching")
         for batch in dataset_iterator:
-          for i in range(len(batch["input_ids"])):
-            LOGGER.debug("Input sentence:\n\"%s\"",
-                         tokenizer.decode([x for x in batch["input_ids"][i]
-                                           if x != tokenizer.eos_token_id]))
-            LOGGER.debug("Label:\n\"%s\"",
-                         tokenizer.decode([(x if x != -100 else 0)
-                                           for x in batch["label_ids"][i]]))
+          # for i in range(len(batch["input_ids"])):
+          #   LOGGER.debug("Input sentence:\n\"%s\"",
+          #                tokenizer.decode([x for x in batch["input_ids"][i]
+          #                                  if x != tokenizer.eos_token_id]))
+          #   LOGGER.debug("Label:\n\"%s\"",
+          #                tokenizer.decode([(x if x != -100 else 0)
+          #                                  for x in batch["label_ids"][i]]))
 
           if FLAG_DATASET_TYPE.value != "tfr":
             batch = (
@@ -823,8 +823,8 @@ def main(argv):
 
           LOGGER.info("[%s] - Epoch: # %d", split, epoch)
           LOGGER.info("[%s] - Tensorboard_dir: %s", split, instance_output_dir)
-          LOGGER.info("[%s] - Batch: %s # %d", split, batch_counters[split])
-          LOGGER.info("[%s] - Step: %s # %d", split, step_counters[split])
+          LOGGER.info("[%s] - Batch: # %d", split, batch_counters[split])
+          LOGGER.info("[%s] - Step:  # %d", split, step_counters[split])
           if FLAG_USE_SUBSET.value:
             LOGGER.warning(">> USING A SUBSET OF THE DATASET <<")
           LOGGER.info(
