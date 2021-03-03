@@ -10,6 +10,7 @@ import json
 import pathlib
 import operator
 import os
+# import rich
 import subprocess
 import sys
 import time
@@ -105,6 +106,17 @@ _FLAG_PREEMPTIBLE_TPU = flags.DEFINE_boolean(
   False,
   "Whether or not we want the TPU instance to be preemtible."
 )
+_FLAG_USE_TPUS = flags.DEFINE_boolean(
+  "use-tpus",
+  False,
+  "Whether to create a TPU."
+)
+_FLAG_TPU_ONLY = flags.DEFINE_boolean(
+  "tpu-only",
+  False,
+  "",
+)
+
 
 def flatten_once(collection):
     asd = []
@@ -145,66 +157,6 @@ def validate_instance_type_flag():
   num_cpus = int(instance_tuple[2])
   # utils.check_operator(operator.le, num_cpus, 16)
   utils.check_operator(operator.ge, num_cpus, 0)
-
-def start_using_ctpu():
-  ###########################################################################
-  # CTPU UP
-  ###########################################################################
-  # Prepare the flags
-  if _FLAG_TPU_TYPE.value == "v2":
-      zone = _ZONE_TPUV2
-  elif _FLAG_TPU_TYPE.value == "v3":
-      zone = _ZONE_TPUV3
-  else:
-      raise RuntimeError(_FLAG_TPU_TYPE.value)
-
-  bin = "ctpu"
-  positional_flags = ["up", "-noconf"]
-  named_flags = {
-    "-tf-version": _FLAG_TF_VERSION.value,
-    "-zone": zone,
-    "-disk-size-gb": f"{_FLAG_BOOT_DISK_SIZE.value}GB",
-    "-tpu-size": f"{_FLAG_TPU_TYPE.value}-{_FLAG_TPU_QTY.value}"
-  }
-
-  # Flags specific to this script's flags.
-  if _FLAG_VM_ONLY.value:
-    positional_flags.append("-vm-only")
-
-  if _FLAG_INSTANCE_TYPE.value:
-    validate_instance_type_flag()
-    # Add it
-    named_flags["-machine-type"] = _FLAG_INSTANCE_TYPE.value
-
-  if _FLAG_PREEMPTIBLE_VM.value:
-    positional_flags.append("-preemptible-vm")
-
-  if _FLAG_PREEMPTIBLE_TPU.value:
-    positional_flags.append("-preemptible")
-
-
-  for key, value in named_flags.items():
-    utils.check_isinstance(value, str)
-    utils.check_isinstance(key, str)
-
-  for key in named_flags:
-    assert key.startswith("-"), key
-
-  # Create the command
-  cmd_flags = [bin] + positional_flags + [
-      f"{k}={shlex.quote(v)}" for k, v
-      in named_flags.items()
-  ]
-
-  h1("Running `ctpu up`")
-  print(f"Command:\n"
-      f"\tbin:    '{bin}'\n"
-      f"\tflags:  {json.dumps(named_flags, indent=4)}"
-  )
-
-  # Run the command
-
-  subprocess.run(cmd_flags)
 
 def start_using_gcloud():
   if not _FLAG_VM_ONLY.value:
@@ -274,6 +226,30 @@ def start_using_gcloud():
     "gcloud", "compute", "instances", "list"
   ])
 
+
+def create_tpu_using_gcloud():
+  utils.check_equal(_FLAG_TPU_TYPE.value, "v3")
+  utils.check_equal(_FLAG_TPU_QTY.value, "8")
+  assert not _FLAG_PREEMPTIBLE_TPU.value, _FLAG_PREEMPTIBLE_TPU.value
+
+  positional_cmd = [
+    "gcloud", "compute", "tpus", "create", _FLAG_NAME.value]
+
+  if _FLAG_PREEMPTIBLE_TPU.value:
+    positional_cmd += "--preemptible"
+
+  named_arguments = {
+    "--version": "2.4.1",
+    "--accelerator-type": f"{_FLAG_TPU_TYPE.value}-{_FLAG_TPU_QTY.value}",
+  }
+
+  cmd = positional_cmd + [
+    f"{k}={shlex.quote(v)}" for k, v in named_arguments.items()
+  ]
+
+  subprocess.run(cmd)
+
+
 def main(argv):
     if len(argv) > 1:
         raise RuntimeError(argv)
@@ -281,9 +257,11 @@ def main(argv):
     if not subprocess.check_output(["which", "gcloud"]).strip():
       raise RuntimeError("`gcloud` is not in the path. `ctpu` won't work.")
 
+    if not _FLAG_TPU_ONLY.value:
+      start_using_gcloud()
 
-    # start_using_ctpu()
-    start_using_gcloud()
+    if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
+      create_tpu_using_gcloud()
 
     ###########################################################################
     # Copying setup.sh over

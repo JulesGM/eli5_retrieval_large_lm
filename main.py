@@ -673,7 +673,6 @@ def main(argv):
     batch_counters = dict(train=0, eval=0)
     prev_batch_end = time.time()
 
-
     ############################################################################
     # Create the Eval DS object.
     # ==========================================================================
@@ -696,7 +695,6 @@ def main(argv):
     # Start the iteration. We step by calling `next(...)`.
     LOGGER.debug("Done distributing the eval dataset to the replicas.")
     eval_ds_instance = iter(eval_ds_instance)
-
     step_function = dict(train=training_step, eval=evaluation_step)
 
     ############################################################################
@@ -733,9 +731,10 @@ def main(argv):
       )
       train_ds_instance = iter(train_ds_instance)
 
-      # This allows us to see if we reached the end of the training iterator,
-      # in which case "did_at_least_one_training_batch == False".
-      # We could also test that it did all the batches, to similar results.
+      # To change splits, we use `itertools.islice` over the dataset generator.
+      # When the training dataset generator is done, a new loop of the following
+      # while loop occurs, but no training batch is done because we are taking
+      # an `islice` of a generator that is done.
       did_at_least_one_training_batch = True
       split = "eval"
       while did_at_least_one_training_batch:
@@ -749,12 +748,21 @@ def main(argv):
         if split == "train":
           did_at_least_one_training_batch = False
 
+
+        ########################################################################
+        # Take slices from the dataset iterator
+        # ======================================================================
+        # We only want to do a certain number of batches before switching splits
+        # We do this by using an `itertools.islice` of the dataset iterators.
+        ########################################################################
         if split == "train":
           dataset_iterator = itertools.islice(
               train_ds_instance, FLAG_BATCHES_BETWEEN_EVALS.value
           )
         else:
-          # The evaluation DS is tiny, so we reshuffle and take a random sample
+          # The evaluation dataset generator is infinite, reshuffles everytime
+          # it gets to its end.
+          # Still, we take a fixed size slice form that infinite generator.
           dataset_iterator = itertools.islice(
               eval_ds_instance, FLAG_NUMBER_EVAL_BATCHES.value
           )

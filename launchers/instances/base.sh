@@ -1,6 +1,19 @@
 set -e
+LINE="$(python -c "import os; print('#' * os.get_terminal_size(0)[0])")"
+
+function h1 () {
+  echo "$LINE"
+  echo "# $1"
+  echo "$LINE"
+}
+
+function h2 () {
+  echo "$1"
+}
 
 function run () {
+  h1 "About to run the instance-launching script."
+
   if [[ "$HOSTNAME" != MBP-* ]] ; then
     echo "Not running on MBP, aborting"
     return
@@ -15,16 +28,23 @@ function run () {
   local FLAGS
   IFS=" " read -r -a FLAGS <<< "$(python json_to_args.py "$CONFIG_PATH")"
 
-  echo "FLAGS:"
+  h2 "Path to config file:"
+  echo " - \`$CONFIG_PATH\`"
+  echo ""
+
+  h2 "Flags from config file:"
   for FLAG in "${FLAGS[@]}" ; do
     echo " - \"$FLAG\""
   done
+  echo ""
 
-  echo "OTHER FLAGS:"
+  h2 "Extra flags provided manually:"
   for FLAG in "${OTHER_FLAGS[@]}" ; do
     echo " - \"$FLAG\""
   done
+  echo ""
 
+  h1 "Launching."
   pytype launchers/launch.py -P . --check-variable-types \
     --check-container-types \
     --check-parameter-types --precise-return
