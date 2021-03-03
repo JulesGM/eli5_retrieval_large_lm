@@ -4,10 +4,7 @@ TPU_NAME=jules
 
 
 title () {
-  local LINE=
-  for x in $(seq "$(tput cols)") ; do
-    LINE=$LINE"#"
-  done
+  local LINE="##################################################"
   echo -e "\n"
   echo -e "$LINE"
   echo -e "# $1"
