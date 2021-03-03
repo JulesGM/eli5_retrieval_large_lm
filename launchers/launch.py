@@ -262,12 +262,19 @@ def create_tpu_using_gcloud():
   h2("Starting the TPUs.")
   run_gcloud_command(cmd)
 
+def git_is_dirty(directory=_SCRIPT_DIRECTORY) -> bool:
+  os.chdir(_SCRIPT_DIRECTORY)
+  root = subprocess.check_output([
+    "git", "rev", "-parse", "--show-toplevel",
+    ]).decode().strip()
+  return git.Repo(root).is_dirty(untracked_files=False)
+
 
 def main(argv):
     if len(argv) > 1:
         raise RuntimeError(argv)
 
-    if git.Repo(os.path.dirname(_SCRIPT_DIRECTORY)).is_dirty(untracked_files=False):
+    if git_is_dirty():
       raise RuntimeError(
         "The git directory is dirty. Push the changes before running."
       )

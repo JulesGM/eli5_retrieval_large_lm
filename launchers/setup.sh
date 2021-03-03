@@ -1,14 +1,17 @@
 # set -x
 set -e
-LINE="$(python3 -c "import os; print('#' * int(os.popen('stty size', 'r').read().split()[1]))")"
 TPU_NAME=jules
 
 
 title () {
-    echo -e "\n"
-    echo -e "$LINE"
-    echo -e "# $1"
-    echo -e "$LINE"
+  local LINE=
+  for x in $(seq "$(tput cols)") ; do
+    LINE=$LINE"#"
+  done
+  echo -e "\n"
+  echo -e "$LINE"
+  echo -e "# $1"
+  echo -e "$LINE"
 }
 
 
