@@ -363,14 +363,7 @@ def build_evaluation_step(
           return_dict=True).loss
       losses.append(loss)
 
-    if (
-        FLAG_DISTRIBUTE_MODE.value ==
-        constants.DistributeModeChoices.split_vertically
-    ):
-      with tf.device("/job:localhost/replica:0/task:0/device:CPU:0"):
-        return tf.math.reduce_mean(losses)
-    else:
-      return tf.math.reduce_mean(losses)
+    return tf.math.reduce_mean(losses)
   return fn
 
 
