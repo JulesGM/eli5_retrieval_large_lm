@@ -1,5 +1,5 @@
 {
-  "vm-only": true,
+  "vm-only": false,
   "instance-type": "n1-standard-32",
   "preemptible-vm": true,
   "use-tpus": true,
