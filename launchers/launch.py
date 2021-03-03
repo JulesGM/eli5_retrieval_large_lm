@@ -169,11 +169,6 @@ def run_gcloud_command(command):
   subprocess.run(command, check=True)
 
 def start_using_gcloud():
-  if not _FLAG_VM_ONLY.value:
-    raise ValueError(
-      "Only -vm-only mode is currently supported "
-      "with `gcloud` creation."
-    )
 
   if not _FLAG_INSTANCE_TYPE.value:
     raise ValueError(
