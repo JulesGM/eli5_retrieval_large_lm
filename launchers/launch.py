@@ -17,7 +17,9 @@ import time
 
 from absl import flags
 from absl import app
+
 import colored_traceback.auto  # pylint: disable=unused-import
+import git
 import pexpect
 import shlex
 
@@ -264,6 +266,12 @@ def create_tpu_using_gcloud():
 def main(argv):
     if len(argv) > 1:
         raise RuntimeError(argv)
+
+    if git.Repo(os.path.dirname(_SCRIPT_DIRECTORY)).is_dirty(untracked_files=False):
+      raise RuntimeError(
+        "The git directory is dirty. Push the changes before running."
+      )
+
 
     h1("Module args:")
     args = utils.get_module_args(argv[0])
