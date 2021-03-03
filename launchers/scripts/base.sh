@@ -29,13 +29,16 @@ function run () {
   IFS=" " read -r -a FLAGS <<< "$(python3 json_to_args.py "$CONFIG_PATH")"
 
   h1 "Script launcher for \`$SCRIPT_PATH\`"
+  echo ""
 
   h2 "Flags from configuration file \`$CONFIG_PATH\`:"
   for FLAG in "${FLAGS[@]}" ; do
     echo " - \"$FLAG\""
   done
+  echo ""
 
   h1 "Running the script."
+
   pytype "$SCRIPT_PATH" -P . --check-variable-types \
     --check-container-types \
     --check-parameter-types --precise-return

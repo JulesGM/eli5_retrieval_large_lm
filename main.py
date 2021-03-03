@@ -808,7 +808,7 @@ def main(argv):
           else:
             average_loss = float(loss.numpy())
 
-          tf.debugging.check_numerics(loss)
+          tf.debugging.check_numerics(loss, "Numerics failed.")
           now = time.time()
           batch_duration = now - prev_batch_end
           prev_batch_end = now
