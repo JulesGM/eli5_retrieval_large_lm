@@ -265,7 +265,7 @@ def create_tpu_using_gcloud():
 def git_is_dirty(directory=_SCRIPT_DIRECTORY) -> bool:
   os.chdir(_SCRIPT_DIRECTORY)
   root = subprocess.check_output([
-    "git", "rev", "-parse", "--show-toplevel",
+    "git", "rev-parse", "--show-toplevel",
     ]).decode().strip()
   return git.Repo(root).is_dirty(untracked_files=False)
 
