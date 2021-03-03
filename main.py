@@ -821,10 +821,10 @@ def main(argv):
           prev_batch_end = now
           ma_loss[split].update(average_loss)
 
-          LOGGER.info("[$s] - Epoch: # %d", split, epoch)
-          LOGGER.info("[$s] - Tensorboard_dir: %s", split, instance_output_dir)
-          LOGGER.info("[$s] - Batch: %s # %d", split, batch_counters[split])
-          LOGGER.info("[$s] - Step: %s # %d", split, step_counters[split])
+          LOGGER.info("[%s] - Epoch: # %d", split, epoch)
+          LOGGER.info("[%s] - Tensorboard_dir: %s", split, instance_output_dir)
+          LOGGER.info("[%s] - Batch: %s # %d", split, batch_counters[split])
+          LOGGER.info("[%s] - Step: %s # %d", split, step_counters[split])
           if FLAG_USE_SUBSET.value:
             LOGGER.warning(">> USING A SUBSET OF THE DATASET <<")
           LOGGER.info(
