@@ -251,7 +251,7 @@ FLAG_SAVE_PERIOD_MIN = flags.DEFINE_integer(
     "How many minutes to wait between saves."
 )
 
-_FLAG_TPU_NAME = flags.DEFINE_string(
+FLAG_TPU_NAME = flags.DEFINE_string(
   "tpu-name",
   None,
   "Name of the TPU to use."
