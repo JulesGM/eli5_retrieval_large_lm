@@ -1,6 +1,6 @@
 set -e
 
-LINE="$(python -c "import os; print('#' * os.get_terminal_size(0)[0])")"
+LINE="$(python3 -c "import os; print('#' * os.get_terminal_size(0)[0])")"
 
 function h1 () {
   echo "$LINE"
@@ -34,6 +34,9 @@ function run () {
   for FLAG in "${FLAGS[@]}" ; do
     echo " - \"$FLAG\""
   done
+  if [[ "${#FLAGS[@]}" == 0 ]]; then
+    echo " [No flags were provided]"
+  fi
   echo ""
 
   h1 "Running the script."

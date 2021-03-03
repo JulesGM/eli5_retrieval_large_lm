@@ -1,13 +1,14 @@
 # set -x
 set -e
 TPU_NAME=jules
+LINE="$(python3 -c "import os; print('#' * os.get_terminal_size(0)[0])")"
 
 
 title () {
     echo -e "\n"
-    echo -e "##############################################################"
+    echo -e "$LINE"
     echo -e "# $1"
-    echo -e "##############################################################"
+    echo -e "$LINE"
 }
 
 

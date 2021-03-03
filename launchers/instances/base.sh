@@ -1,5 +1,5 @@
 set -e
-LINE="$(python -c "import os; print('#' * os.get_terminal_size(0)[0])")"
+LINE="$(python3 -c "import os; print('#' * os.get_terminal_size(0)[0])")"
 
 function h1 () {
   echo "$LINE"
@@ -36,12 +36,18 @@ function run () {
   for FLAG in "${FLAGS[@]}" ; do
     echo " - \"$FLAG\""
   done
+  if [[ "${#FLAGS[@]}" == 0 ]] ; then
+    echo " [No flags were provided]"
+  fi
   echo ""
 
   h2 "Extra flags provided manually:"
   for FLAG in "${OTHER_FLAGS[@]}" ; do
     echo " - \"$FLAG\""
   done
+  if [[ "${#OTHER_FLAGS[@]}" == 0 ]] ; then
+    echo " [No extra flags were provided]"
+  fi
   echo ""
 
   h1 "Launching."

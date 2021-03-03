@@ -250,10 +250,16 @@ def to_json_file(path: PathType, obj, indent : int = 4):
   with gfile.GFile(str(path), "w") as fout:
     fout.write(json.dumps(obj, indent=indent))
 
+def get_module_args(module_name, sort=True):
+  flags_ = FLAGS.flags_by_module_dict()[module_name]
+  if sort:
+    flags_.sort(key=lambda flag: flag.name)
+  return {flag.name: flag.value for flag in flags_}
+
 
 def log_module_args(
     logger, module_name,
-    level = logging.DEBUG, sort = True
+    level=logging.DEBUG, sort=True
 ):
   """Logs the list of flags defined in a module, as well as their value.
 
@@ -266,12 +272,8 @@ def log_module_args(
   Returns:
     None
   """
-  flags_ = FLAGS.flags_by_module_dict()[module_name]
-  if sort:
-    flags_.sort(key=lambda flag: flag.name)
-  # `json.dumps` formats dicts in a nice way when indent is specified.
-  content = "\n" + json.dumps({flag.name: flag.value for flag in flags_
-                               }, indent=4)
+  flags_ = get_module_args(module_name, sort)
+  content = "\n" + json.dumps(flags_, indent=4)
   if logger is not None:
     logger.log(level, content)
   return content

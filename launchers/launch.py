@@ -10,7 +10,7 @@ import json
 import pathlib
 import operator
 import os
-# import rich
+from rich import print
 import subprocess
 import sys
 import time
@@ -25,6 +25,7 @@ import shlex
 _SCRIPT_DIRECTORY = pathlib.Path(__file__).resolve().parent
 sys.path.append(str(_SCRIPT_DIRECTORY.parent))
 import utils
+
 
 _PROJECT_NAME = "julesgm-research"
 _ZONE_TPUV2 = "us-central1-f"
@@ -127,26 +128,29 @@ def flatten_once(collection):
 
 def h1(text):
     print("\n" + "#" * utils.term_size())
-    print("# " + text)
+    print("# " + "[green bold]" + text + "[/]")
     print("#" * utils.term_size())
 
 
 def h2(text):
-    print(text)
+    print("[blue bold italic]" + text + "[/]")
 
+def h3(text):
+  print(text)
 
 def try_command(command, title, sleep_time):
-  h1(title)
   while True:
     try:
-      subprocess.run(command, check=True)
-      h2("Done with sending setup.sh.")
+      run_gcloud_command(command)
+      print("")
       break
     except subprocess.SubprocessError as err:
+      print("")
       print(f"Got error: `{err}`")
       print(f"Sleeping for {sleep_time} seconds.")
       time.sleep(sleep_time)
-      h1(f"Retrying `{command}`")
+      print("")
+      h2(f"Retrying {title}.")
 
 def validate_instance_type_flag():
   # Validate the value:
@@ -157,6 +161,10 @@ def validate_instance_type_flag():
   num_cpus = int(instance_tuple[2])
   # utils.check_operator(operator.le, num_cpus, 16)
   utils.check_operator(operator.ge, num_cpus, 0)
+
+def run_gcloud_command(command):
+  print(f"Running gcloud command:\n\t{command}")
+  subprocess.run(command, check=True)
 
 def start_using_gcloud():
   if not _FLAG_VM_ONLY.value:
@@ -204,28 +212,30 @@ def start_using_gcloud():
   for key in named_flags:
     assert key.startswith("--"), key
 
+  h2("Creating the VM instance.")
   command = positional + [
     f"{k}={shlex.quote(v)}" for k, v
     in named_flags.items()
   ]
-
-  print(f"Running gcloud command: {command}")
-  subprocess.run(command)
+  run_gcloud_command(command)
+  print("")
   time.sleep(_FLAG_SLEEP_TIME.value)
-  subprocess.run([
-    "gcloud", "compute", "instances", "list"
-  ])
 
-  print("Starting the instance")
-  subprocess.run([
+  h2("Starting the instance.")
+  command = [
     "gcloud", "compute", "instances", "start",
     _FLAG_NAME.value
-  ])
+  ]
+  run_gcloud_command(command)
+  print("")
   time.sleep(_FLAG_SLEEP_TIME.value)
-  subprocess.run([
-    "gcloud", "compute", "instances", "list"
-  ])
 
+  h2("Listing the instances.")
+  command = [
+    "gcloud", "compute", "instances", "list"
+  ]
+  run_gcloud_command(command)
+  print("")
 
 def create_tpu_using_gcloud():
   utils.check_equal(_FLAG_TPU_TYPE.value, "v3")
@@ -247,12 +257,18 @@ def create_tpu_using_gcloud():
     f"{k}={shlex.quote(v)}" for k, v in named_arguments.items()
   ]
 
-  subprocess.run(cmd)
+  h2("Starting the TPUs.")
+  run_gcloud_command(cmd)
 
 
 def main(argv):
     if len(argv) > 1:
         raise RuntimeError(argv)
+
+    h1("Module args:")
+    args = utils.get_module_args(argv[0])
+    print(args)
+    print("")
 
     if not subprocess.check_output(["which", "gcloud"]).strip():
       raise RuntimeError("`gcloud` is not in the path. `ctpu` won't work.")
