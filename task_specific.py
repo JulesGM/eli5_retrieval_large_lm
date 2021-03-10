@@ -128,7 +128,7 @@ def _create_gpt2(
 def create_lm_ds_kilt_eli5(
     *,
     tokenizer,
-    context_window_size,  # pylint: disable=unused-argument
+    context_window_size,
     dataset_name,  # pylint: disable=unused-argument
     batch_size,
     split,

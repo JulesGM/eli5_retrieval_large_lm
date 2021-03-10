@@ -19,6 +19,7 @@
   "retrieval_temperature": 0.03,
   "num_retrievals": 5,
   "approach_type": "naked_lm",
+  "optimizer_type": "adafactor",
   "learning_rate": 5E-5,
 
   "max_length_generation": 350,

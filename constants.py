@@ -101,10 +101,6 @@ class CTH5Fields(utils.FlagChoices):
   gpt2_answer_ids_inputs = "gpt2_answer_ids"
   gpt2_retrieved_ids = "gpt2_retrieved_ids"
 
-  # Deprecated:
-  gpt2_question_ids_labels = "gpt2_question_labels"
-  gpt2_answer_ids_labels = "gpt2_answer_labels"
-
 
 class SplitChoices(utils.FlagChoices):
   train = "train"
@@ -116,3 +112,7 @@ class DatasetTypeChoices(utils.FlagChoices):
   """There used to be other options here.
   """
   tfr = "tfr"
+
+class OptimizerTypes(utils.FlagChoices):
+  adam = "adam"
+  adafactor = "adafactor"

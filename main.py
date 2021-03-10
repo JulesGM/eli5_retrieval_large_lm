@@ -256,6 +256,14 @@ FLAG_TPU_NAME = flags.DEFINE_string(
   None,
   "Name of the TPU to use."
 )
+
+FLAG_OPTIMIZER_TYPE = flags.DEFINE_enum(
+  "optimizer_type",
+  None,
+  constants.OptimizerTypes.choices(),
+  "Which optimizer to use."
+)
+
 ################################################################################
 # Training and evaluation step functions.
 ################################################################################
@@ -467,6 +475,8 @@ def main(argv):
   if tf_utils.current_accelerator_type() != "TPU":
     tf.debugging.set_log_device_placement(True)
 
+  assert tf_utils.current_accelerator_type() != "CPU"
+
   if FLAG_DISTRIBUTE_MODE.value in constants.PURE_DATA_PARALLEL_STRATEGIES:
     actual_num_replicas = len(tf_utils.devices_to_use())
   elif FLAG_DISTRIBUTE_MODE.value in constants.DATA_PARALLEL_DMC:
@@ -477,44 +487,8 @@ def main(argv):
   ##############################################################################
   # We load the retriever model if it is needed.
   ##############################################################################
-  # Not currently used.
-
+  # Not currently used. See old commits.
   retriever = None
-  # if (FLAG_APPROACH_TYPE.value ==
-  #     constants.ApproachTypeChoices.lm_and_realm):
-  #   raise NotImplementedError("This part needs to be tested anew.")
-    # config_path = FLAG_RETRIEVER_CONFIG_PATH.value
-    # realm_save = tf_utils.REALMSave(**utils.from_json_file(config_path))
-    #
-    # # Approx 15 min when not in dev mode, on CPU
-    # with utils.log_duration(LOGGER, "main",
-    #                         "whole of BERTScaNNRetriever.__init__",
-    #                         logging.INFO):
-    #   scann_config = retrievers.ScannConfig(
-    #       **utils.from_json_file(FLAG_SCANN_CONFIG_PATH.value))
-    #   retriever = retrievers.BERTScaNNRetriever(
-    #       retriever_module_path=realm_save.query_embedder_path,
-    #       block_records_path=realm_save.text_records,
-    #       num_block_records=realm_save.num_block_records,
-    #       mode=tf.estimator.ModeKeys.EVAL,
-    #       scann_config=scann_config)
-
-  # elif (FLAG_APPROACH_TYPE.value ==
-  #       constants.ApproachTypeChoices.cached_realm):
-  #   raise NotImplementedError("This part needs to be tested anew.")
-    # config_path = FLAG_RETRIEVER_CONFIG_PATH.value
-    # realm_save = tf_utils.REALMSave(**utils.from_json_file(config_path))
-    #
-    # # Approx 15 min when not in dev mode, on CPU
-    # with utils.log_duration(LOGGER, "main",
-    #                         "whole of FullyCachedRetriever.__init__",
-    #                         logging.INFO):
-    #
-    #   retriever = retrievers.FullyCachedRetriever(
-    #       db_path=FLAG_FULLYCACHED_H5_PATH.value,
-    #       block_records_path=realm_save.text_records,
-    #       num_block_records=realm_save.num_block_records,
-    #       )
 
   ##############################################################################
   # Distributed training task
@@ -538,9 +512,16 @@ def main(argv):
       tokenizer = model_specific.tokenizer
 
       def make_optimizer():
-        return tensor2tensor.utils.adafactor.AdafactorOptimizer(
+        if FLAG_OPTIMIZER_TYPE.value == constants.OptimizerTypes.adafactor:
+          return tensor2tensor.utils.adafactor.AdafactorOptimizer(
+              learning_rate=FLAG_LEARNING_RATE.value
+          )
+        elif FLAG_OPTIMIZER_TYPE.value == constants.OptimizerTypes.adam:
+          return tf.keras.optimizers.Adam(
             learning_rate=FLAG_LEARNING_RATE.value
-        )
+          )
+        else:
+          raise ValueError(FLAG_OPTIMIZER_TYPE.value)
 
       if model_specific.strategy:
         with model_specific.strategy.scope():
@@ -562,11 +543,7 @@ def main(argv):
       if FLAG_DATASET_NAME.value == constants.DatasetNameChoices.kilt_eli5:
         return task_specific.create_lm_ds_kilt_eli5(
             tokenizer=tokenizer,
-            context_window_size=(
-                model_or_replicas[0].config.n_positions
-                if isinstance(model_or_replicas, list)
-                else model_or_replicas.config.n_positions
-            ),
+            context_window_size=model_or_replicas.config.n_positions,
             dataset_name=FLAG_DATASET_NAME.value,
             # Batches are split over the replicas:
             batch_size=FLAG_BATCH_SIZE.value * actual_num_replicas,
@@ -754,13 +731,16 @@ def main(argv):
 
         LOGGER.debug("Batching")
         for batch in dataset_iterator:
-          # for i in range(len(batch["input_ids"])):
-          #   LOGGER.debug("Input sentence:\n\"%s\"",
-          #                tokenizer.decode([x for x in batch["input_ids"][i]
-          #                                  if x != tokenizer.eos_token_id]))
-          #   LOGGER.debug("Label:\n\"%s\"",
-          #                tokenizer.decode([(x if x != -100 else 0)
-          #                                  for x in batch["label_ids"][i]]))
+          for i in range(len(batch["input_ids"])):
+            input_sentence = tokenizer.decode(
+              [x for x in batch["input_ids"][i] if x != tokenizer.eos_token_id]
+            )
+            LOGGER.debug("Input sentence:\n\"%s\"", input_sentence)
+
+            answer = tokenizer.decode(
+              [(x if x != -100 else 0) for x in batch["label_ids"][i]]
+            )
+            LOGGER.debug("Label:\n\"%s\"", answer)
 
           if FLAG_DATASET_TYPE.value != "tfr":
             batch = (
