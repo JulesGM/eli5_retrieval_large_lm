@@ -264,8 +264,8 @@ FLAG_OPTIMIZER_TYPE = flags.DEFINE_enum(
   "Which optimizer to use."
 )
 
-FLAG_LOG_SAMPLE_VALUES = flags.DEFINE_boolean(
-  "log_sample_values",
+FLAG_LOG_SAMPLES = flags.DEFINE_boolean(
+  "log_samples",
   None,
   "Whether to log the values of the samples. Costly."
 )
