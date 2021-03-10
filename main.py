@@ -744,7 +744,7 @@ def main(argv):
           for i in range(len(sample["input_ids"])):
             for replica_idx in (
                 range(len(batch["input_ids"].values)) if is_distributed
-                else [None]
+                else [0]
             ):
               if is_distributed:
                 sample = {k: batch[k].values[replica_idx] for k in batch}
@@ -754,12 +754,27 @@ def main(argv):
               input_sentence = tokenizer.decode(
                 [x for x in sample["input_ids"][i] if x != tokenizer.eos_token_id]
               )
-              LOGGER.debug("Input sentence:\n\"%s\"", input_sentence)
+
+              LOGGER.debug(
+                "%sInput [%d / %d]%s:\n\"%s\"",
+                colorama.Fore.GREEN,
+                replica_idx,
+                actual_num_replicas,
+                input_sentence,
+                colorama.Style.RESET_ALL
+              )
 
               answer = tokenizer.decode(
                 [(x if x != -100 else 0) for x in sample["label_ids"][i]]
               )
-              LOGGER.debug("Label:\n\"%s\"", answer)
+              LOGGER.debug(
+                "%sLabel [%d / %d]%s:\n\"%s\"",
+                colorama.Fore.GREEN,
+                replica_idx,
+                actual_num_replicas,
+                answer,
+                colorama.Style.RESET_ALL
+              )
 
           # We only care about training epochs as, obviously, we don't train
           # over eval samples; the number of  eval samples seen only
