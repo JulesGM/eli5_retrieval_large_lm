@@ -765,10 +765,10 @@ def main(argv):
                 LOGGER.debug(
                   "%sInput [%d / %d]%s:\n\"%s\"",
                   colorama.Fore.GREEN,
-                  replica_idx,
+                  replica_idx + 1,
                   actual_num_replicas,
+                  colorama.Style.RESET_ALL,
                   input_sentence,
-                  colorama.Style.RESET_ALL
                 )
 
                 answer = tokenizer.decode(
@@ -777,10 +777,10 @@ def main(argv):
                 LOGGER.debug(
                   "%sLabel [%d / %d]%s:\n\"%s\"",
                   colorama.Fore.GREEN,
-                  replica_idx,
+                  replica_idx + 1,
                   actual_num_replicas,
+                  colorama.Style.RESET_ALL,
                   answer,
-                  colorama.Style.RESET_ALL
                 )
 
           # We only care about training epochs as, obviously, we don't train
