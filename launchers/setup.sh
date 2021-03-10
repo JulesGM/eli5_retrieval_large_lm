@@ -1,5 +1,6 @@
 # set -x
 set -e
+set -u
 TPU_NAME=jules
 
 
@@ -12,10 +13,6 @@ title () {
 }
 
 
-#title "Authenticating with gcloud"
-#gcloud auth login
-
-
 title "Installing generic dependencies"
 sudo apt-get -qq install -y wget subversion 1>/dev/null
 
@@ -25,7 +22,7 @@ title "Downloading and installing Conda"
 wget -q https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh \
     -O ~/Anaconda.sh 1>/dev/null
 # Run install file in automated mode
-bash ~/Anaconda.sh -b -p $HOME/anaconda 1>/dev/null
+bash ~/Anaconda.sh -b -p "$HOME/anaconda" 1>/dev/null
 ./anaconda/bin/conda init 1>/dev/null
 export PATH="/home/jules/anaconda/bin:$PATH"
 
@@ -53,10 +50,11 @@ git config --global user.name "Jules Gagnon-Marchand"
 title "Testing TPUs"
 pushd eli5_retrieval_large_lm
 python -c "
-import tf_utils as tu
-tu.init_tpus('$TPU_NAME')
-print('\n'.join(map(str, tu.devices_to_use())))
-"
+import sys
+import tf_utils
+tf_utils.init_tpus(sys.argv[1])
+print('\n'.join(map(str, tf_utils.devices_to_use())))
+" "$TPU_NAME"
 popd
 
 
@@ -66,6 +64,18 @@ python -m pip install -r requirements.txt -q 1>/dev/null
 popd
 
 
+title "Installing gcsfuse"
+sudo apt-get update
+sudo apt-get install gcsfuse
+
+
+title "Mounting the bucket"
+LOG_PATH="$HOME/BUCKET-julesgm-research-v3"
+mkdir "$LOG_PATH"
+gcsfuse julesgm-research-v3 "$LOG_PATH"
+
+
+title "Adding to .bashrc"
 echo \
 "alias ls='ls -h --color -X --group-directories-first'
 alias l='ls'
