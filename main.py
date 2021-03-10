@@ -731,7 +731,7 @@ def main(argv):
 
         LOGGER.debug("Batching")
         for batch in dataset_iterator:
-          for i in range(len(batch["input_ids"])):
+          for i in range(len(batch["input_ids"].values[0])):
             input_sentence = tokenizer.decode(
               [x for x in batch["input_ids"][i] if x != tokenizer.eos_token_id]
             )
