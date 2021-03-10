@@ -731,23 +731,35 @@ def main(argv):
 
         LOGGER.debug("Batching")
         for batch in dataset_iterator:
-          for i in range(len(batch["input_ids"].values[0])):
-            input_sentence = tokenizer.decode(
-              [x for x in batch["input_ids"][i] if x != tokenizer.eos_token_id]
-            )
-            LOGGER.debug("Input sentence:\n\"%s\"", input_sentence)
+          ######################################################################
+          # Print elements of the dataset
+          ######################################################################
+          # Make ourselves resistant to values possibly being a PerReplica object
+          is_distributed = isinstance(batch["input_ids"], values.PerReplica)
+          if is_distributed:
+            sample = {k: batch[k].values[0] for k in batch}
+          else:
+            sample = batch
 
-            answer = tokenizer.decode(
-              [(x if x != -100 else 0) for x in batch["label_ids"][i]]
-            )
-            LOGGER.debug("Label:\n\"%s\"", answer)
+          for i in range(len(sample["input_ids"])):
+            for replica_idx in (
+                range(len(batch["input_ids"].values)) if is_distributed
+                else [None]
+            ):
+              if is_distributed:
+                sample = {k: batch[k].values[replica_idx] for k in batch}
+              else:
+                sample = batch
 
-          if FLAG_DATASET_TYPE.value != "tfr":
-            batch = (
-                model_specific.strategy
-                .experimental_distribute_values_from_function(
-                    tf_utils.make_dict_distribute_fn(batch)
-                ))
+              input_sentence = tokenizer.decode(
+                [x for x in sample["input_ids"][i] if x != tokenizer.eos_token_id]
+              )
+              LOGGER.debug("Input sentence:\n\"%s\"", input_sentence)
+
+              answer = tokenizer.decode(
+                [(x if x != -100 else 0) for x in sample["label_ids"][i]]
+              )
+              LOGGER.debug("Label:\n\"%s\"", answer)
 
           # We only care about training epochs as, obviously, we don't train
           # over eval samples; the number of  eval samples seen only
