@@ -264,6 +264,12 @@ FLAG_OPTIMIZER_TYPE = flags.DEFINE_enum(
   "Which optimizer to use."
 )
 
+FLAG_LOG_SAMPLE_VALUES = flags.DEFINE_boolean(
+  "log_sample_values",
+  None,
+  "Whether to log the values of the samples. Costly."
+)
+
 ################################################################################
 # Training and evaluation step functions.
 ################################################################################
@@ -731,50 +737,51 @@ def main(argv):
 
         LOGGER.debug("Batching")
         for batch in dataset_iterator:
-          ######################################################################
-          # Print elements of the dataset
-          ######################################################################
-          # Make ourselves resistant to values possibly being a PerReplica object
-          is_distributed = isinstance(batch["input_ids"], values.PerReplica)
-          if is_distributed:
-            sample = {k: batch[k].values[0] for k in batch}
-          else:
-            sample = batch
+          if FLAG_LOG_SAMPLES.value:
+            ######################################################################
+            # Print elements of the dataset
+            ######################################################################
+            # Make ourselves resistant to values possibly being a PerReplica object
+            is_distributed = isinstance(batch["input_ids"], values.PerReplica)
+            if is_distributed:
+              sample = {k: batch[k].values[0] for k in batch}
+            else:
+              sample = batch
 
-          for i in range(len(sample["input_ids"])):
-            for replica_idx in (
-                range(len(batch["input_ids"].values)) if is_distributed
-                else [0]
-            ):
-              if is_distributed:
-                sample = {k: batch[k].values[replica_idx] for k in batch}
-              else:
-                sample = batch
+            for i in range(len(sample["input_ids"])):
+              for replica_idx in (
+                  range(len(batch["input_ids"].values)) if is_distributed
+                  else [0]
+              ):
+                if is_distributed:
+                  sample = {k: batch[k].values[replica_idx] for k in batch}
+                else:
+                  sample = batch
 
-              input_sentence = tokenizer.decode(
-                [x for x in sample["input_ids"][i] if x != tokenizer.eos_token_id]
-              )
+                input_sentence = tokenizer.decode(
+                  [x for x in sample["input_ids"][i] if x != tokenizer.eos_token_id]
+                )
 
-              LOGGER.debug(
-                "%sInput [%d / %d]%s:\n\"%s\"",
-                colorama.Fore.GREEN,
-                replica_idx,
-                actual_num_replicas,
-                input_sentence,
-                colorama.Style.RESET_ALL
-              )
+                LOGGER.debug(
+                  "%sInput [%d / %d]%s:\n\"%s\"",
+                  colorama.Fore.GREEN,
+                  replica_idx,
+                  actual_num_replicas,
+                  input_sentence,
+                  colorama.Style.RESET_ALL
+                )
 
-              answer = tokenizer.decode(
-                [(x if x != -100 else 0) for x in sample["label_ids"][i]]
-              )
-              LOGGER.debug(
-                "%sLabel [%d / %d]%s:\n\"%s\"",
-                colorama.Fore.GREEN,
-                replica_idx,
-                actual_num_replicas,
-                answer,
-                colorama.Style.RESET_ALL
-              )
+                answer = tokenizer.decode(
+                  [(x if x != -100 else 0) for x in sample["label_ids"][i]]
+                )
+                LOGGER.debug(
+                  "%sLabel [%d / %d]%s:\n\"%s\"",
+                  colorama.Fore.GREEN,
+                  replica_idx,
+                  actual_num_replicas,
+                  answer,
+                  colorama.Style.RESET_ALL
+                )
 
           # We only care about training epochs as, obviously, we don't train
           # over eval samples; the number of  eval samples seen only
