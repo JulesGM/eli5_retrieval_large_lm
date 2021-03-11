@@ -25,5 +25,5 @@
   "max_length_generation": 350,
 
   "tpu-name": "jules",
-  "log_samples": false
+  "log_samples": true
 }
