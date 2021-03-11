@@ -749,15 +749,12 @@ def main(argv):
                 reset=colorama.Style.RESET_ALL,
               )
             )
-            is_distributed = isinstance(batch["input_ids"], values.PerReplica)
-            if is_distributed:
-              sample = {k: batch[k].values[0] for k in batch}
-            else:
-              sample = batch
-
-            for i in range(len(sample["input_ids"])):
+            is_distributed = isinstance(
+              batch["input_ids"], values.PerReplica
+            )
+            for i in range(model_or_replicas.config.n_positions):
               for replica_idx in (
-                  range(len(batch["input_ids"].values)) if is_distributed
+                  range(actual_num_replicas) if is_distributed
                   else [0]
               ):
                 if is_distributed:
