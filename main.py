@@ -795,9 +795,9 @@ def main(argv):
                     sample["label_ids"][i],
                     fillvalue=None
                 )):
-                  x_w = tokenizer.decode([x]) if x >= 0 else f"<<<{y}>>>"
-                  y_w = tokenizer.decode([y]) if y >= 0 else f"<<<{y}>>>"
-                  print(f"{i}:\t\"{x_w}\", \"{y_w}\")")
+                  x_w = tokenizer.decode([x]) if x >= 0 else f"[ {x} ]"
+                  y_w = tokenizer.decode([y]) if y >= 0 else f"[ {y} ]"
+                  print(f"{i}:\t\t`{x_w}`,\t`{y_w}`")
 
           # We only care about training epochs as, obviously, we don't train
           # over eval samples; the number of  eval samples seen only
