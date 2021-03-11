@@ -754,7 +754,7 @@ def main(argv):
             is_distributed = isinstance(
               batch["input_ids"], values.PerReplica
             )
-            for i in range(model_or_replicas.config.n_positions):
+            for in_batch_idx in range(FLAG_BATCH_SIZE.value):
               for replica_idx in (
                   range(actual_num_replicas) if is_distributed
                   else [0]
@@ -794,14 +794,14 @@ def main(argv):
                 sentences.add_column("BPE Index", justify="center")
                 sentences.add_column("Inputs", justify="center")
                 sentences.add_column("Labels", justify="center")
-                for j, (x, y) in enumerate(itertools.zip_longest(
-                    sample["input_ids"][i].numpy(),
-                    sample["label_ids"][i].numpy(),
-                    fillvalue=None
+                for bpe_idx, (x, y) in enumerate(itertools.zip_longest(
+                    sample["input_ids"][in_batch_idx].numpy(),
+                    sample["label_ids"][in_batch_idx].numpy(),
+                    fillvalue=None,
                 )):
                   x_w = tokenizer.decode([x]) if x >= 0 else f"[ {x} ]"
                   y_w = tokenizer.decode([y]) if y >= 0 else f"[ {y} ]"
-                  sentences.add_row(str(j), x_w, y_w)
+                  sentences.add_row(str(bpe_idx), x_w, y_w)
 
                 cons.print(sentences)
 
