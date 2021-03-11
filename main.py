@@ -742,6 +742,13 @@ def main(argv):
             # Print elements of the dataset
             ######################################################################
             # Make ourselves resistant to values possibly being a PerReplica object
+            LOGGER.warning(
+              f"%(red)sLOGGING SAMPLES. THIS IS VERY SLOW.$(reset)s",
+              dict(
+                red=colorama.Fore.RED,
+                reset=colorama.Style.RESET_ALL,
+              )
+            )
             is_distributed = isinstance(batch["input_ids"], values.PerReplica)
             if is_distributed:
               sample = {k: batch[k].values[0] for k in batch}
