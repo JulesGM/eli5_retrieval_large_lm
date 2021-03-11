@@ -791,8 +791,8 @@ def main(argv):
                 # )
 
                 for i, (x, y) in enumerate(itertools.zip_longest(
-                    sample["input_ids"][i],
-                    sample["label_ids"][i],
+                    sample["input_ids"][i].numpy(),
+                    sample["label_ids"][i].numpy(),
                     fillvalue=None
                 )):
                   x_w = tokenizer.decode([x]) if x >= 0 else f"[ {x} ]"
