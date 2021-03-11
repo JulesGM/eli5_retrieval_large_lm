@@ -743,7 +743,7 @@ def main(argv):
             ######################################################################
             # Make ourselves resistant to values possibly being a PerReplica object
             LOGGER.warning(
-              f"%(red)sLOGGING SAMPLES. THIS IS VERY SLOW.$(reset)s",
+              f"%(red)sLOGGING SAMPLES. THIS IS VERY SLOW.%(reset)s",
               dict(
                 red=colorama.Fore.RED,
                 reset=colorama.Style.RESET_ALL,
