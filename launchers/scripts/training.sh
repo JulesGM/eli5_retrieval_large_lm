@@ -6,7 +6,7 @@ SCRIPT_PATH="main.py"
 CONFIG_PATH="configs/train_configs/tpu_gpt2_eli5_kilt.json"
 
 LOG_DIR="$HOME/BUCKET-julesgm-research-v3/train_run_log/"
-LOG_PATH="$LOG_DIR/$(date +"%Y-%m-%d_%H:%M:%S")"
+LOG_PATH="$LOG_DIR/$(TZ=":America/New_York" date +"%Y-%m-%d_%T)"
 mkdir -p "$LOG_DIR" || true
 
 echo "Writing logs to '$LOG_PATH'."

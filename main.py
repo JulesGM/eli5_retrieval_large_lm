@@ -758,30 +758,39 @@ def main(argv):
                 else:
                   sample = batch
 
-                input_sentence = tokenizer.decode(
-                  [x for x in sample["input_ids"][i] if x != tokenizer.eos_token_id]
-                )
+                # input_sentence = tokenizer.decode(
+                #   [x for x in sample["input_ids"][i] if x != tokenizer.eos_token_id]
+                # )
 
-                LOGGER.debug(
-                  "%sInput [%d / %d]%s:\n\"%s\"",
-                  colorama.Fore.GREEN,
-                  replica_idx + 1,
-                  actual_num_replicas,
-                  colorama.Style.RESET_ALL,
-                  input_sentence,
-                )
+                # LOGGER.debug(
+                #   "%sInput [%d / %d]%s:\n\"%s\"",
+                #   colorama.Fore.GREEN,
+                #   replica_idx + 1,
+                #   actual_num_replicas,
+                #   colorama.Style.RESET_ALL,
+                #   input_sentence,
+                # )
+                #
+                # answer = tokenizer.decode(
+                #   [(x if x != -100 else 0) for x in sample["label_ids"][i]]
+                # )
+                # LOGGER.debug(
+                #   "%sLabel [%d / %d]%s:\n\"%s\"",
+                #   colorama.Fore.GREEN,
+                #   replica_idx + 1,
+                #   actual_num_replicas,
+                #   colorama.Style.RESET_ALL,
+                #   answer,
+                # )
 
-                answer = tokenizer.decode(
-                  [(x if x != -100 else 0) for x in sample["label_ids"][i]]
-                )
-                LOGGER.debug(
-                  "%sLabel [%d / %d]%s:\n\"%s\"",
-                  colorama.Fore.GREEN,
-                  replica_idx + 1,
-                  actual_num_replicas,
-                  colorama.Style.RESET_ALL,
-                  answer,
-                )
+                for i, (x, y) in enumerate(itertools.zip_longest(
+                    sample["input_ids"][i],
+                    sample["label_ids"][i],
+                    fillvalue=None
+                )):
+                  x_w = tokenizer.decode([x]) if x >= 0 else f"<<<{y}>>>"
+                  y_w = tokenizer.decode([y]) if y >= 0 else f"<<<{y}>>>"
+                  print(f"{i}:\t\"{x_w}\", \"{y_w}\")")
 
           # We only care about training epochs as, obviously, we don't train
           # over eval samples; the number of  eval samples seen only
