@@ -23,6 +23,7 @@
   "learning_rate": 5E-5,
 
   "max_length_generation": 350,
+
   "tpu-name": "jules",
-  "log_samples": true
+  "log_samples": false
 }

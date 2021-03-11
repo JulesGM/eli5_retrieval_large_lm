@@ -9,4 +9,5 @@ LOG_DIR="$HOME/BUCKET-julesgm-research-v3/train_run_log/"
 LOG_PATH="$LOG_DIR/$(date +"%Y-%m-%d_%H:%M:%S")"
 mkdir -p "$LOG_DIR" || true
 
-run "$SCRIPT_PATH" "$CONFIG_PATH" | tee "$LOG_PATH"
+echo "Writing logs to '$LOG_PATH'."
+run "$SCRIPT_PATH" "$CONFIG_PATH" 2>&1 | tee "$LOG_PATH"
