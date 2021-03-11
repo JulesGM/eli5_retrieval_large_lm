@@ -21,6 +21,8 @@ import itertools
 import json
 import logging
 import os
+from rich import table
+from rich import console
 import shlex
 import socket
 import subprocess
@@ -787,14 +789,21 @@ def main(argv):
                 #   answer,
                 # )
 
-                for i, (x, y) in enumerate(itertools.zip_longest(
+                cons = console.Console()
+                sentences = table.Table()
+                sentences.add_column("BPE Index", justify="center")
+                sentences.add_column("Inputs", justify="center")
+                sentences.add_column("Labels", justify="center")
+                for j, (x, y) in enumerate(itertools.zip_longest(
                     sample["input_ids"][i].numpy(),
                     sample["label_ids"][i].numpy(),
                     fillvalue=None
                 )):
                   x_w = tokenizer.decode([x]) if x >= 0 else f"[ {x} ]"
                   y_w = tokenizer.decode([y]) if y >= 0 else f"[ {y} ]"
-                  print(f"{i}:\t\t`{x_w}`,\t`{y_w}`")
+                  sentences.add_row(str(j), x_w, y_w)
+
+                cons.print(sentences)
 
           # We only care about training epochs as, obviously, we don't train
           # over eval samples; the number of  eval samples seen only
