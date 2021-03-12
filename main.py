@@ -271,6 +271,17 @@ FLAG_LOG_SAMPLES = flags.DEFINE_boolean(
   None,
   "Whether to log the values of the samples. Very Costly!"
 )
+FLAG_DO_RESUME = flags.DEFINE_boolean(
+  "do-resume",
+  False,
+  "Whether to resume training from a checkpoint."
+)
+FLAG_RESUME_PATH = flags.DEFINE_string(
+  "resume-path",
+  "",
+  "From which path to resume from."
+)
+
 
 ################################################################################
 # Training and evaluation step functions.
@@ -388,6 +399,7 @@ def save_model(
     *,
     train_steps,
     model_or_replicas,
+    optimizer,
     instance_output_dir
 ):
   """Save the model and log the flags, locally, then copy over to GS."""
@@ -911,6 +923,7 @@ def main(argv):
             save_model(
                 train_steps=step_counters["train"],
                 model_or_replicas=model_or_replicas,
+                optimizer=optimizer,
                 instance_output_dir=instance_output_dir
             )
 
