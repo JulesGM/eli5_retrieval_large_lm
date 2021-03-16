@@ -33,10 +33,20 @@ _PROJECT_NAME = "julesgm-research"
 _ZONE_TPUV2 = "us-central1-f"
 _ZONE_TPUV3 = "europe-west4-a"
 
+# gcloud create
+# gcloud start
+# gcloud tpu create
+_FLAG_INSTANCE_NAME = flags.DEFINE_string(
+  "instance-name",
+  "jules",
+  "Name of the VM and TPU instances.",
+)
+
+# $HOME
 _FLAG_USER_NAME = flags.DEFINE_string(
   "username",
   "jules",
-  "The gcloud username."
+  "The gcloud username. "
 )
 
 _FLAG_IMAGE_FAMILY = flags.DEFINE_string(
@@ -53,12 +63,6 @@ _FLAG_SLEEP_TIME = flags.DEFINE_integer(
   "commands that take time."
 )
 
-# Args
-_FLAG_NAME = flags.DEFINE_string(
-  "instance-name",
-  "jules",
-  "",
-)
 
 _FLAG_BOOT_DISK_SIZE = flags.DEFINE_integer(
   "boot-disk-size",
@@ -186,8 +190,7 @@ def start_using_gcloud():
     raise RuntimeError(_FLAG_TPU_TYPE.value)
 
   positional = [
-    "gcloud", "compute", "instances",
-    "create", _FLAG_NAME.value,
+    "gcloud", "compute", "instances", "create", _FLAG_INSTANCE_NAME.value,
   ]
 
   if _FLAG_PREEMPTIBLE_VM.value:
@@ -220,8 +223,7 @@ def start_using_gcloud():
 
   h2("Starting the instance.")
   command = [
-    "gcloud", "compute", "instances", "start",
-    _FLAG_NAME.value
+    "gcloud", "compute", "instances", "start", _FLAG_INSTANCE_NAME.value
   ]
   run_gcloud_command(command)
   print("")
@@ -240,7 +242,8 @@ def create_tpu_using_gcloud():
   assert not _FLAG_PREEMPTIBLE_TPU.value, _FLAG_PREEMPTIBLE_TPU.value
 
   positional_cmd = [
-    "gcloud", "compute", "tpus", "create", _FLAG_NAME.value]
+    "gcloud", "compute", "tpus", "create", _FLAG_INSTANCE_NAME.value
+  ]
 
   if _FLAG_PREEMPTIBLE_TPU.value:
     positional_cmd += "--preemptible"
@@ -296,8 +299,8 @@ def main(argv):
     try_command([
       "gcloud", "compute", "scp",
       f"{_SCRIPT_DIRECTORY}/setup.sh",
-      f"{_FLAG_NAME.value}@{_FLAG_NAME.value}:"
-      f"/home/{_FLAG_NAME.value}/",
+      f"{_FLAG_INSTANCE_NAME.value}@{_FLAG_INSTANCE_NAME.value}:"
+      f"/home/{_FLAG_INSTANCE_NAME.value}/",
     ],
       "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
     )
@@ -308,7 +311,7 @@ def main(argv):
     h1("Running setup.sh")
     try_command([
         "gcloud", "compute", "ssh",
-        f"{_FLAG_NAME.value}@{_FLAG_NAME.value}",
+        f"{_FLAG_INSTANCE_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
         f"--command=source /home/{_FLAG_USER_NAME.value}/setup.sh"
     ],
       "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value

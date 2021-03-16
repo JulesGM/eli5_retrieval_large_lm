@@ -20,6 +20,7 @@ import functools
 import itertools
 import json
 import logging
+import operator
 import os
 from rich import table
 from rich import console
@@ -494,7 +495,9 @@ def main(argv):
   if tf_utils.current_accelerator_type() != "TPU":
     tf.debugging.set_log_device_placement(True)
 
-  assert tf_utils.current_accelerator_type() != "CPU"
+  utils.check_operator(
+    operator.ne, tf_utils.current_accelerator_type(), "CPU"
+  )
 
   if FLAG_DISTRIBUTE_MODE.value in constants.PURE_DATA_PARALLEL_STRATEGIES:
     actual_num_replicas = len(tf_utils.devices_to_use())
@@ -719,6 +722,11 @@ def main(argv):
       did_at_least_one_training_batch = True
       split = "eval"
       while did_at_least_one_training_batch:
+        utils.check_operator(
+          operator.ne, tf_utils.current_accelerator_type(), "CPU"
+        )
+
+
         # Invert split
         if split == "train":
           split = "eval"
@@ -837,7 +845,7 @@ def main(argv):
                 input_ids=input_ids,
                 label_ids=label_ids,
             )
-          
+
           utils.print_mem(f"[{split}] - Mem before `strategy.run`", LOGGER)
           LOGGER.debug("[%s] - Calling `strategy.run`", split)
           loss = model_specific.strategy.run(
