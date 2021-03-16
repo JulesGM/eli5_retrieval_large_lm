@@ -311,7 +311,7 @@ def main(argv):
     h1("Running setup.sh")
     try_command([
         "gcloud", "compute", "ssh",
-        f"{_FLAG_INSTANCE_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
+        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
         f"--command=source /home/{_FLAG_USER_NAME.value}/setup.sh"
     ],
       "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
