@@ -837,6 +837,7 @@ def main(argv):
                 input_ids=input_ids,
                 label_ids=label_ids,
             )
+          
           utils.print_mem(f"[{split}] - Mem before `strategy.run`", LOGGER)
           LOGGER.debug("[%s] - Calling `strategy.run`", split)
           loss = model_specific.strategy.run(
@@ -856,7 +857,7 @@ def main(argv):
               "[%s] - Real num replicas: %s",  split, actual_num_replicas
             )
             LOGGER.debug("[%s] - Loss: %s",  split, loss)
-            LOGGER.debug("[%s] - Loss values: %s", split, loss.values)
+            # LOGGER.debug("[%s] - Loss values: %s", split, loss.values)
 
             average_loss = float(tf.math.reduce_mean(loss.values).numpy())
           else:
