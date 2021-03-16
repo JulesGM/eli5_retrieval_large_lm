@@ -277,7 +277,6 @@ def main(argv):
         "The git directory is dirty. Push the changes before running."
       )
 
-
     h1("Module args:")
     args = utils.get_module_args(argv[0])
     print(args)
@@ -299,7 +298,7 @@ def main(argv):
     try_command([
       "gcloud", "compute", "scp",
       f"{_SCRIPT_DIRECTORY}/setup.sh",
-      f"{_FLAG_INSTANCE_NAME.value}@{_FLAG_INSTANCE_NAME.value}:"
+      f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:"
       f"/home/{_FLAG_INSTANCE_NAME.value}/",
     ],
       "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
