@@ -414,19 +414,18 @@ def save_model(
         [
             "gsutil",
             "-m",
-            "cp",
-            "-R",
+            "rsync",
+            "-r",
             save_directory,
             instance_output_dir,
         ]
     )
     LOGGER.debug("Sending model. Command:\n\t- `%s`", command)
-    subprocess.run(
+    subprocess.Popen(
       command,
       shell=True,
       # `shell=True` makes it so we let the shell find which gsutil to use.
       # `shlex.join` makes the join safe.
-      check=True,
     )
 
 
