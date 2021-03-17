@@ -295,11 +295,12 @@ def main(argv):
     # Copying setup.sh over
     ###########################################################################
     h1("Copying setup.sh")
+    target_dir = f"/home/{_FLAG_USER_NAME.value}/"
+
     try_command([
       "gcloud", "compute", "scp",
       f"{_SCRIPT_DIRECTORY}/setup.sh",
-      f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:"
-      f"/home/{_FLAG_INSTANCE_NAME.value}/",
+      f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{target_dir}",
     ],
       "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
     )
@@ -311,7 +312,7 @@ def main(argv):
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-        f"--command=source /home/{_FLAG_USER_NAME.value}/setup.sh"
+        f"--command=source {target_dir}setup.sh"
     ],
       "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
     )
