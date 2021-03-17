@@ -44,6 +44,6 @@ function run () {
     --check-container-types \
     --check-parameter-types --precise-return
   python3 check_flags.py "$SCRIPT_PATH"
-#  python3 -u -m pdb -c continue "$SCRIPT_PATH" "${FLAGS[@]}"
+  # python3 -um pdb -c continue "$SCRIPT_PATH" "${FLAGS[@]}"
   python3 "$SCRIPT_PATH" "${FLAGS[@]}"
 }

@@ -22,8 +22,6 @@ import json
 import logging
 import operator
 import os
-from rich import table
-from rich import console
 import shlex
 import socket
 import subprocess
@@ -37,6 +35,8 @@ from absl import logging as absl_logging
 import colorama
 import constants
 import numpy as np
+from rich import console
+from rich import table
 import task_specific
 import tensor2tensor.utils.adafactor
 import tensorflow as tf
@@ -256,7 +256,7 @@ FLAG_SAVE_PERIOD_MIN = flags.DEFINE_integer(
 
 FLAG_TPU_NAME = flags.DEFINE_string(
   "tpu-name",
-  None,
+  socket.gethostname(),
   "Name of the TPU to use."
 )
 
@@ -498,6 +498,10 @@ def main(argv):
   utils.check_operator(
     operator.ne, tf_utils.current_accelerator_type(), "CPU"
   )
+
+  assert FLAG_TPU_NAME.value == socket.gethostname(), (
+    "This is a configuration choice. You can remove this. "
+    "There will be no side effects.")
 
   if FLAG_DISTRIBUTE_MODE.value in constants.PURE_DATA_PARALLEL_STRATEGIES:
     actual_num_replicas = len(tf_utils.devices_to_use())

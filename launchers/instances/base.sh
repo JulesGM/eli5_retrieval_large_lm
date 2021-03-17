@@ -51,9 +51,9 @@ function run () {
   echo ""
 
   h1 "Launching."
-  pytype launchers/launch.py -P . --check-variable-types \
+  pytype launchers/launch-instance.py -P . --check-variable-types \
     --check-container-types \
     --check-parameter-types --precise-return
-  python check_flags.py launchers/launch.py
-  python launchers/launch.py "${FLAGS[@]}" "${OTHER_FLAGS[@]}"
+  python check_flags.py launchers/launch-instance.py
+  python launchers/launch-instance.py "${FLAGS[@]}" "${OTHER_FLAGS[@]}"
 }

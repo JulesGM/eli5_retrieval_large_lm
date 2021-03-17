@@ -1,10 +1,10 @@
 r"""
-pytype launchers/launch.py -P . --check-variable-types \
+pytype launchers/launch-instance.py -P . --check-variable-types \
   --check-container-types \
   --check-parameter-types --precise-return && \
-  python check_flags.py launchers/launch.py && \
+  python check_flags.py launchers/launch-instance.py && \
   FLAGS="$(python json_to_args.py configs/launcher_configs/query_cacher_tfrecord.json)" && \
-  python launchers/launch.py $FLAGS
+  python launchers/launch-instance.py $FLAGS
 """
 import json
 import pathlib
@@ -41,20 +41,16 @@ _FLAG_INSTANCE_NAME = flags.DEFINE_string(
   "jules",
   "Name of the VM and TPU instances.",
 )
-
-# $HOME
 _FLAG_USER_NAME = flags.DEFINE_string(
   "username",
   "jules",
   "The gcloud username. "
 )
-
 _FLAG_IMAGE_FAMILY = flags.DEFINE_string(
   "image-family",
   "tf2-2-4-cpu",
   "See https://cloud.google.com/ai-platform/deep-learning-vm/docs/images"
 )
-
 _FLAG_SLEEP_TIME = flags.DEFINE_integer(
   "sleep_time",
   10,
@@ -62,27 +58,22 @@ _FLAG_SLEEP_TIME = flags.DEFINE_integer(
   "Is also the duration of the sleep between major "
   "commands that take time."
 )
-
-
 _FLAG_BOOT_DISK_SIZE = flags.DEFINE_integer(
   "boot-disk-size",
   250,
   "Size of the boot disk, in gigabytes"
 )
-
 _FLAG_INSTANCE_TYPE = flags.DEFINE_string(
   "instance-type",
   None,
   "See https://cloud.google.com/compute/docs/machine-types for details."
 )
-
 _FLAG_TF_VERSION = flags.DEFINE_enum(
         "tf-version",
         "2.4.0",
         ["2.4.0"],
         "",
 )
-
 _FLAG_TPU_TYPE = flags.DEFINE_enum(
         "tpu-type",
         "v3",
@@ -141,8 +132,10 @@ def h1(text):
 def h2(text):
     print("[blue bold italic]" + text + "[/]")
 
+
 def h3(text):
   print(text)
+
 
 def try_command(command, title, sleep_time):
   while True:
@@ -158,6 +151,7 @@ def try_command(command, title, sleep_time):
       print("")
       h2(f"Retrying {title}.")
 
+
 def validate_instance_type_flag():
   # Validate the value:
   instance_tuple = _FLAG_INSTANCE_TYPE.value.strip().split("-")
@@ -168,9 +162,11 @@ def validate_instance_type_flag():
   # utils.check_operator(operator.le, num_cpus, 16)
   utils.check_operator(operator.ge, num_cpus, 0)
 
+
 def run_gcloud_command(command):
   print(f"Running gcloud command:\n\t{command}")
   subprocess.run(command, check=True)
+
 
 def start_using_gcloud():
 
@@ -236,6 +232,7 @@ def start_using_gcloud():
   run_gcloud_command(command)
   print("")
 
+
 def create_tpu_using_gcloud():
   utils.check_equal(_FLAG_TPU_TYPE.value, "v3")
   utils.check_equal(_FLAG_TPU_QTY.value, "8")
@@ -259,6 +256,7 @@ def create_tpu_using_gcloud():
 
   h2("Starting the TPUs.")
   run_gcloud_command(cmd)
+
 
 def git_is_dirty(directory=_SCRIPT_DIRECTORY) -> bool:
   os.chdir(_SCRIPT_DIRECTORY)
@@ -298,11 +296,10 @@ def main(argv):
     target_dir = f"/home/{_FLAG_USER_NAME.value}/"
 
     try_command([
-      "gcloud", "compute", "scp",
-      f"{_SCRIPT_DIRECTORY}/setup.sh",
-      f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{target_dir}",
-    ],
-      "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
+        "gcloud", "compute", "scp",
+        f"{_SCRIPT_DIRECTORY}/setup.sh",
+        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{target_dir}",
+      ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
     )
 
     ###########################################################################
