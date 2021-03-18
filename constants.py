@@ -62,8 +62,8 @@ COMPUTATION_SHAPE_FROM_NUM_CORES = {
 
 class ApproachTypeChoices(utils.FlagChoices):
   naked_lm = "naked_lm"
-  lm_and_realm = "lm_and_realm"
-  cached_realm = "cached_realm"
+  # lm_and_realm = "lm_and_realm"
+  # cached_realm = "cached_realm"
   cached_pretok = "cached_pretok"
 
 
@@ -75,11 +75,11 @@ class ModelTypeChoices(utils.FlagChoices):
   gpt2 = "gpt2"
 
 
-RETRIEVAL_APPROACH_TYPES = frozenset([
-    ApproachTypeChoices.lm_and_realm,
-    ApproachTypeChoices.cached_realm,
-    ApproachTypeChoices.cached_pretok,
-])
+# RETRIEVAL_APPROACH_TYPES = frozenset([
+#     ApproachTypeChoices.lm_and_realm,
+#     ApproachTypeChoices.cached_realm,
+#     ApproachTypeChoices.cached_pretok,
+# ])
 
 
 # There will eventually be more, like generate.
