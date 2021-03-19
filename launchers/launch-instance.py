@@ -283,11 +283,11 @@ def main(argv):
     if not subprocess.check_output(["which", "gcloud"]).strip():
       raise RuntimeError("`gcloud` is not in the path. `ctpu` won't work.")
 
-    # if not _FLAG_TPU_ONLY.value:
-    #   start_using_gcloud()
-    #
-    # if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
-    #   create_tpu_using_gcloud()
+    if not _FLAG_TPU_ONLY.value:
+      start_using_gcloud()
+
+    if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
+      create_tpu_using_gcloud()
 
     ###########################################################################
     # Copying setup.sh over
@@ -295,12 +295,12 @@ def main(argv):
     h1("Copying setup.sh")
     remote_home_dir = f"/home/{_FLAG_USER_NAME.value}/"
 
-    # try_command([
-    #     "gcloud", "compute", "scp",
-    #     f"{_SCRIPT_DIRECTORY}/setup.sh",
-    #     f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{target_dir}",
-    #   ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
-    # )
+    try_command([
+        "gcloud", "compute", "scp",
+        f"{_SCRIPT_DIRECTORY}/setup.sh",
+        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
+      ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
+    )
 
     ###########################################################################
     # Running setup.sh
