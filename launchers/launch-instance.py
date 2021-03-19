@@ -293,7 +293,7 @@ def main(argv):
     # Copying setup.sh over
     ###########################################################################
     h1("Copying setup.sh")
-    target_dir = f"/home/{_FLAG_USER_NAME.value}/"
+    remote_home_dir = f"/home/{_FLAG_USER_NAME.value}/"
 
     # try_command([
     #     "gcloud", "compute", "scp",
@@ -307,7 +307,7 @@ def main(argv):
     ###########################################################################
     h1("Running setup.sh")
     project_dir =  (
-      f"{target_dir}eli5_retrieval_large_lm/"
+      f"{remote_home_dir}eli5_retrieval_large_lm/"
     )
     training_script_uri = (
       f"{project_dir}launchers/scripts/training.sh"
@@ -315,7 +315,8 @@ def main(argv):
     run_command = shlex.quote(
       f"cd {project_dir} && bash {training_script_uri}"
     )
-    screen_command = f"screen -S training -dm {run_command}"
+    # screen_command = f"screen -S training -dm {run_command}"
+    screen_command = f"screen -S training -dm touch {remote_home_dir}asd.txt"
 
     try_command([
         "gcloud", "compute", "ssh",
