@@ -284,36 +284,35 @@ def main(argv):
 
     if not subprocess.check_output(["which", "gcloud"]).strip():
       raise RuntimeError("`gcloud` is not in the path. `ctpu` won't work.")
-    #
-    # if not _FLAG_TPU_ONLY.value:
-    #   start_using_gcloud()
-    #
-    # if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
-    #   create_tpu_using_gcloud()
+
+    if not _FLAG_TPU_ONLY.value:
+      start_using_gcloud()
+
+    if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
+      create_tpu_using_gcloud()
 
     ###########################################################################
     # Copying bashrc over
     ###########################################################################
     h1("Copying bashrc")
-    # path_local_file = f"{_SCRIPT_DIRECTORY}/bashrc"
-    # try_command([
-    #   "gcloud", "compute", "scp", path_local_file,
-    #   f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
-    # ], "Copying bashrc", sleep_time=_FLAG_SLEEP_TIME.value
-    # )
+    path_local_file = f"{_SCRIPT_DIRECTORY}/bashrc"
+    try_command([
+      "gcloud", "compute", "scp", path_local_file,
+      f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
+    ], "Copying bashrc", sleep_time=_FLAG_SLEEP_TIME.value
+    )
 
     ###########################################################################
     # Copying setup.sh over
     ###########################################################################
     h1("Copying setup.sh")
     remote_home_dir = f"/home/{_FLAG_USER_NAME.value}/"
-    #
-    # try_command([
-    #     "gcloud", "compute", "scp",
-    #     f"{_SCRIPT_DIRECTORY}/setup.sh",
-    #     f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
-    #   ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
-    # )
+    try_command([
+        "gcloud", "compute", "scp",
+        f"{_SCRIPT_DIRECTORY}/setup.sh",
+        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
+      ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
+    )
 
     ###########################################################################
     # Running setup.sh
@@ -334,30 +333,24 @@ def main(argv):
     # Build Setup Command
     setup_command = f"source {remote_home_dir}setup.sh"
 
-    # Put Commands together
-    # sub_commands = [setup_command, screen_command]
-    # quoted_joined_commands = shlex.quote("; ".join(sub_commands))
-    # full_command = f"bash -c {quoted_joined_commands}"
-
     # Run the Commands Remotely
-    # h1("Running setup.sh")
-    # try_command([
-    #     "gcloud", "compute", "ssh",
-    #     f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-    #     f"--command={setup_command}"
-    # ],
-    #   "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
-    # )
-    #
+    h1("Running setup.sh")
+    try_command([
+        "gcloud", "compute", "ssh",
+        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
+        f"--command={setup_command}"
+    ],
+      "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
+    )
+
     h1("Running training")
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
         f"--command={screen_command}"
     ],
-      "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
+      "Running training", sleep_time=_FLAG_SLEEP_TIME.value
     )
-
 
     h1("All done.")
 
