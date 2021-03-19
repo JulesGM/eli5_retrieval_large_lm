@@ -317,15 +317,14 @@ def main(argv):
     )
 
     screen_command = f"screen -S training -dm {run_command}"
-    # screen_command = f"screen -S training -dm touch {remote_home_dir}asd.txt"
 
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
         f"--command=" +
         # f"source {target_dir}setup.sh; "
-        # screen_command
-        run_command
+        screen_command
+        # run_command
     ],
       "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
     )
