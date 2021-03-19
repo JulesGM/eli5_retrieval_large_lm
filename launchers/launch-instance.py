@@ -283,11 +283,11 @@ def main(argv):
     if not subprocess.check_output(["which", "gcloud"]).strip():
       raise RuntimeError("`gcloud` is not in the path. `ctpu` won't work.")
 
-    if not _FLAG_TPU_ONLY.value:
-      start_using_gcloud()
-
-    if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
-      create_tpu_using_gcloud()
+    # if not _FLAG_TPU_ONLY.value:
+    #   start_using_gcloud()
+    #
+    # if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
+    #   create_tpu_using_gcloud()
 
     ###########################################################################
     # Copying setup.sh over
@@ -307,7 +307,7 @@ def main(argv):
     ###########################################################################
     h1("Running setup.sh")
     training_script_uri = (
-      f"{target_dir}/eli5_retrieval_large_lm/launchers/scripts/training.sh"
+      f"{target_dir}eli5_retrieval_large_lm/launchers/scripts/training.sh"
     )
     try_command([
         "gcloud", "compute", "ssh",
