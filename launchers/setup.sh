@@ -75,8 +75,12 @@ mkdir "$LOG_PATH"
 gcsfuse julesgm-research-v3 "$LOG_PATH"
 
 
-title "Adding to .bashrc"
-echo \
-"alias ls='ls -h --color -X --group-directories-first'
-alias l='ls'
-alias ll='ls -l'" >> ~/.bashrc
+title "Deleting old bashrc"
+rm "$HOME/.bashrc"
+
+
+title "Copying new bashrc"
+cp "$HOME/bashrc" "$HOME/.bashrc"
+
+
+title "Done. :)"

@@ -275,6 +275,8 @@ def main(argv):
         "The git directory is dirty. Push the changes before running."
       )
 
+    remote_home_dir = f"/home/{_FLAG_USER_NAME.value}/"
+
     h1("Module args:")
     args = utils.get_module_args(argv[0])
     print(args)
@@ -288,6 +290,17 @@ def main(argv):
 
     if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
       create_tpu_using_gcloud()
+
+    ###########################################################################
+    # Copying bashrc over
+    ###########################################################################
+    h1("Copying bashrc")
+    path_local_file = f"{_SCRIPT_DIRECTORY}/bashrc"
+    try_command([
+      "gcloud", "compute", "scp", path_local_file,
+      f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
+    ], "Copying bashrc", sleep_time=_FLAG_SLEEP_TIME.value
+    )
 
     ###########################################################################
     # Copying setup.sh over
@@ -306,22 +319,28 @@ def main(argv):
     # Running setup.sh
     ###########################################################################
     h1("Running setup.sh")
-    project_dir =  (
+
+    # Build Screen Command
+    project_dir = (
       f"{remote_home_dir}eli5_retrieval_large_lm/"
     )
     training_script_uri = (
       f"launchers/scripts/training.sh"
     )
-    run_command = shlex.quote(
+    training_command = shlex.quote(
       f"cd {project_dir} && bash {training_script_uri}"
     )
+    screen_command = f"screen -S training -dm bash -c {training_command}"
 
-    screen_command = f"screen -S training -dm bash -c {run_command}"
+    # Build Setup Command
     setup_command = f"source {remote_home_dir}setup.sh"
-    commands = [screen_command, setup_command]
-    joined_commands = shlex.quote("; ".join(commands))
+
+    # Put Commands together
+    sub_commands = [screen_command, setup_command]
+    joined_commands = shlex.quote("; ".join(sub_commands))
     full_command = f"bash -c {joined_commands}"
 
+    # Run the Commands Remotely
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
