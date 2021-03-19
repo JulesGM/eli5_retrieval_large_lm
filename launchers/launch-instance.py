@@ -310,7 +310,7 @@ def main(argv):
       f"{remote_home_dir}eli5_retrieval_large_lm/"
     )
     training_script_uri = (
-      f"{project_dir}launchers/scripts/training.sh"
+      f"launchers/scripts/training.sh"
     )
     run_command = (
       f"cd {project_dir} && bash {training_script_uri}"
