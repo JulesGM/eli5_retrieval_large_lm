@@ -306,15 +306,23 @@ def main(argv):
     # Running setup.sh
     ###########################################################################
     h1("Running setup.sh")
-    training_script_uri = (
-      f"{target_dir}eli5_retrieval_large_lm/launchers/scripts/training.sh"
+    project_dir =  (
+      f"{target_dir}eli5_retrieval_large_lm/"
     )
+    training_script_uri = (
+      f"{project_dir}launchers/scripts/training.sh"
+    )
+    run_command = shlex.quote(
+      f"cd {project_dir} && bash {training_script_uri}"
+    )
+    screen_command = shlex.quote(f"screen -S training -dm {run_command}")
+
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
         f"--command=" +
         # f"source {target_dir}setup.sh; "
-        shlex.quote(f"screen -S training -dm bash {training_script_uri}")
+        screen_command
     ],
       "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
     )
