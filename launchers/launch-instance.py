@@ -317,13 +317,15 @@ def main(argv):
     )
 
     screen_command = f"screen -S training -dm bash -c {run_command}"
+    setup_command = f"source {remote_home_dir}setup.sh"
+    commands = [screen_command, setup_command]
+    joined_commands = shlex.quote("; ".join(commands))
+    full_command = f"bash -c {joined_commands}"
 
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-        f"--command=" +
-        # f"source {target_dir}setup.sh; "
-        screen_command
+        f"--command={full_command}"
         # run_command
     ],
       "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
