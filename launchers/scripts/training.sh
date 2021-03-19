@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -e
 set -u
+
 echo "Running base.sh"
 source launchers/scripts/base.sh
+echo "Done running bash.sh"
+
 SCRIPT_PATH="main.py"
 CONFIG_PATH="configs/train_configs/tpu_gpt2_eli5_kilt.json"
 
