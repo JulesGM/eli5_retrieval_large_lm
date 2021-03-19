@@ -320,7 +320,7 @@ def main(argv):
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-        f"--command=" +
+        f"--command=bash -c " +
         # f"source {target_dir}setup.sh; "
         screen_command
     ],
