@@ -106,11 +106,7 @@ if ! shopt -oq posix; then
   fi
 fi
 
-if [ -f "/home/$USER/anaconda/etc/profile.d/conda.sh" ]; then
-    . "/home/$USER/anaconda/etc/profile.d/conda.sh"
-else
-    export PATH="/home/$USER/anaconda/bin:$PATH"
-fi
+export PATH="/home/$USER/anaconda/bin:$PATH"
 
 alias ls='ls -h --color -X --group-directories-first'
 alias l='ls'
