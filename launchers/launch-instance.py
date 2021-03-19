@@ -312,7 +312,8 @@ def main(argv):
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-        f"--command=source {target_dir}setup.sh; "
+        f"--command="
+        # f"source {target_dir}setup.sh; "
         f"screen -S training -dm bash {training_script_uri}"
     ],
       "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
