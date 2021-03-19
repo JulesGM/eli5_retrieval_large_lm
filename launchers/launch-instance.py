@@ -312,11 +312,13 @@ def main(argv):
     training_script_uri = (
       f"{project_dir}launchers/scripts/training.sh"
     )
-    run_command = shlex.quote(
-      f"cd {project_dir} && bash {training_script_uri}"
+    run_command = (
+      f"{{ cd {project_dir} && bash {training_script_uri} }} "
+      f"2>{remote_home_dir}log.txt"
     )
-    # screen_command = f"screen -S training -dm {run_command}"
-    screen_command = f"screen -S training -dm touch {remote_home_dir}asd.txt"
+
+    screen_command = f"screen -S training -dm {run_command}"
+    # screen_command = f"screen -S training -dm touch {remote_home_dir}asd.txt"
 
     try_command([
         "gcloud", "compute", "ssh",
