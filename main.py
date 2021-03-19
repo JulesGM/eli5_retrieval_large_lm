@@ -157,8 +157,8 @@ FLAG_USE_HELPER_WORDS = flags.DEFINE_boolean(
     "use_helper_words",
     True,
     "Whether to add guiding words in the inputs, like `Question:`,"
-    " `Answer:` and `Context:`. ")
-
+    " `Answer:` and `Context:`. "
+)
 # Retriever specific flags
 FLAG_QUERY_END = flags.DEFINE_integer(
     "query_end",
@@ -282,7 +282,11 @@ FLAG_RESUME_PATH = flags.DEFINE_string(
   "",
   "From which path to resume from."
 )
-
+FLAG_TRAIN_ON_INPUT = flags.DEFINE_boolean(
+  "train-on-input",
+  False,
+  "Whether to also train over the questions and the retrievals."
+)
 
 ################################################################################
 # Training and evaluation step functions.

@@ -336,16 +336,15 @@ def main(argv):
     setup_command = f"source {remote_home_dir}setup.sh"
 
     # Put Commands together
-    sub_commands = [screen_command, setup_command]
-    joined_commands = shlex.quote("; ".join(sub_commands))
-    full_command = f"bash -c {joined_commands}"
+    sub_commands = [setup_command, screen_command]
+    quoted_joined_commands = shlex.quote("; ".join(sub_commands))
+    full_command = f"bash -c {quoted_joined_commands}"
 
     # Run the Commands Remotely
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
         f"--command={full_command}"
-        # run_command
     ],
       "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
     )
