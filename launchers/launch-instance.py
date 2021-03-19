@@ -324,7 +324,8 @@ def main(argv):
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
         f"--command=" +
         # f"source {target_dir}setup.sh; "
-        screen_command
+        # screen_command
+        run_command
     ],
       "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
     )
