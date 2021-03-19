@@ -1,4 +1,6 @@
 r"""
+This scripts assumes that we are running on Google Cloud Compute.
+
 pytype launchers/launch-instance.py -P . --check-variable-types \
   --check-container-types \
   --check-parameter-types --precise-return && \
@@ -23,33 +25,45 @@ import git
 import pexpect
 import shlex
 
-
 _SCRIPT_DIRECTORY = pathlib.Path(__file__).resolve().parent
 sys.path.append(str(_SCRIPT_DIRECTORY.parent))
 import utils
 
-
-_PROJECT_NAME = "julesgm-research"
+# TODO(julesgm): Only instance of configuration not being fully seperated from
+#  code
 _ZONE_TPUV2 = "us-central1-f"
 _ZONE_TPUV3 = "europe-west4-a"
 
-# gcloud create
-# gcloud start
-# gcloud tpu create
-_FLAG_INSTANCE_NAME = flags.DEFINE_string(
-  "instance-name",
-  "jules",
-  "Name of the VM and TPU instances.",
-)
-_FLAG_USER_NAME = flags.DEFINE_string(
-  "username",
-  "jules",
-  "The gcloud username. "
+_FLAG_BOOT_DISK_SIZE = flags.DEFINE_integer(
+  "boot-disk-size",
+  250,
+  "Size of the boot disk, in gigabytes"
 )
 _FLAG_IMAGE_FAMILY = flags.DEFINE_string(
   "image-family",
   "tf2-2-4-cpu",
   "See https://cloud.google.com/ai-platform/deep-learning-vm/docs/images"
+)
+_FLAG_INSTANCE_NAME = flags.DEFINE_string(
+  "instance-name",
+  "jules",
+  "Name of the VM and TPU instances.",
+)
+
+_FLAG_INSTANCE_TYPE = flags.DEFINE_string(
+  "instance-type",
+  None,
+  "See https://cloud.google.com/compute/docs/machine-types for details."
+)
+_FLAG_PREEMPTIBLE_TPU = flags.DEFINE_boolean(
+  "preemptible-tpu",
+  False,
+  "Whether or not we want the TPU instance to be preemtible."
+)
+_FLAG_PREEMPTIBLE_VM = flags.DEFINE_boolean(
+  "preemptible-vm",
+  False,
+  "Whether or not we want the VM instance to be preemtible."
 )
 _FLAG_SLEEP_TIME = flags.DEFINE_integer(
   "sleep_time",
@@ -58,34 +72,39 @@ _FLAG_SLEEP_TIME = flags.DEFINE_integer(
   "Is also the duration of the sleep between major "
   "commands that take time."
 )
-_FLAG_BOOT_DISK_SIZE = flags.DEFINE_integer(
-  "boot-disk-size",
-  250,
-  "Size of the boot disk, in gigabytes"
-)
-_FLAG_INSTANCE_TYPE = flags.DEFINE_string(
-  "instance-type",
-  None,
-  "See https://cloud.google.com/compute/docs/machine-types for details."
-)
 _FLAG_TF_VERSION = flags.DEFINE_enum(
-        "tf-version",
-        "2.4.0",
-        ["2.4.0"],
-        "",
+  "tf-version",
+  "2.4.0",
+  ["2.4.0"],
+  "",
 )
-_FLAG_TPU_TYPE = flags.DEFINE_enum(
-        "tpu-type",
-        "v3",
-        ["v2", "v3"],
-        "",
+_FLAG_TPU_ONLY = flags.DEFINE_boolean(
+  "tpu-only",
+  False,
+  "",
 )
 _FLAG_TPU_QTY = flags.DEFINE_enum(
-        "tpu-qty",
-        "8",
-        ["8"],
-        "Size of the TPU group. This currently should always "
-        "be 8.",
+  "tpu-qty",
+  "8",
+  ["8"],
+  "Size of the TPU group. This currently should always "
+  "be 8.",
+)
+_FLAG_TPU_TYPE = flags.DEFINE_enum(
+  "tpu-type",
+  "v3",
+  ["v2", "v3"],
+  "",
+)
+_FLAG_USE_TPUS = flags.DEFINE_boolean(
+  "use-tpus",
+  False,
+  "Whether to create a TPU."
+)
+_FLAG_USER_NAME = flags.DEFINE_string(
+  "username",
+  "jules",
+  "The gcloud username. "
 )
 _FLAG_VM_ONLY = flags.DEFINE_boolean(
   "vm-only",
@@ -94,43 +113,22 @@ _FLAG_VM_ONLY = flags.DEFINE_boolean(
   "Great for running other tasks that don't require a TPU, "
   "but that still require a similar setup.",
 )
-_FLAG_PREEMPTIBLE_VM = flags.DEFINE_boolean(
-  "preemptible-vm",
-  False,
-  "Whether or not we want the VM instance to be preemtible."
-)
-_FLAG_PREEMPTIBLE_TPU = flags.DEFINE_boolean(
-  "preemptible-tpu",
-  False,
-  "Whether or not we want the TPU instance to be preemtible."
-)
-_FLAG_USE_TPUS = flags.DEFINE_boolean(
-  "use-tpus",
-  False,
-  "Whether to create a TPU."
-)
-_FLAG_TPU_ONLY = flags.DEFINE_boolean(
-  "tpu-only",
-  False,
-  "",
-)
-
 
 def flatten_once(collection):
-    asd = []
-    for x in collection:
-        asd.extend(x)
-    return asd
+  asd = []
+  for x in collection:
+    asd.extend(x)
+  return asd
 
 
 def h1(text):
-    print("\n" + "#" * utils.term_size())
-    print("# " + "[green bold]" + text + "[/]")
-    print("#" * utils.term_size())
+  print("\n" + "#" * utils.term_size())
+  print("# " + "[green bold]" + text + "[/]")
+  print("#" * utils.term_size())
 
 
 def h2(text):
-    print("[blue bold italic]" + text + "[/]")
+  print("[blue bold italic]" + text + "[/]")
 
 
 def h3(text):
@@ -169,7 +167,6 @@ def run_gcloud_command(command):
 
 
 def start_using_gcloud():
-
   if not _FLAG_INSTANCE_TYPE.value:
     raise ValueError(
       "Using the full gcloud launcher is useless "
@@ -262,98 +259,104 @@ def git_is_dirty(directory=_SCRIPT_DIRECTORY) -> bool:
   os.chdir(_SCRIPT_DIRECTORY)
   root = subprocess.check_output([
     "git", "rev-parse", "--show-toplevel",
-    ]).decode().strip()
+  ]).decode().strip()
   return git.Repo(root).is_dirty(untracked_files=False)
 
 
 def main(argv):
-    if len(argv) > 1:
-        raise RuntimeError(argv)
+  if len(argv) > 1:
+    raise RuntimeError(argv)
 
-    if git_is_dirty():
-      raise RuntimeError(
-        "The git directory is dirty. Push the changes before running."
-      )
-
-    remote_home_dir = f"/home/{_FLAG_USER_NAME.value}/"
-
-    h1("Module args:")
-    args = utils.get_module_args(argv[0])
-    print(args)
-    print("")
-
-    if not subprocess.check_output(["which", "gcloud"]).strip():
-      raise RuntimeError("`gcloud` is not in the path. `ctpu` won't work.")
-
-    if not _FLAG_TPU_ONLY.value:
-      start_using_gcloud()
-
-    if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
-      create_tpu_using_gcloud()
-
-    ###########################################################################
-    # Copying bashrc over
-    ###########################################################################
-    h1("Copying bashrc")
-    path_local_file = f"{_SCRIPT_DIRECTORY}/bashrc"
-    try_command([
-      "gcloud", "compute", "scp", path_local_file,
-      f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
-    ], "Copying bashrc", sleep_time=_FLAG_SLEEP_TIME.value
+  if git_is_dirty():
+    raise RuntimeError(
+      "The git directory is dirty. Push the changes before running."
     )
 
-    ###########################################################################
-    # Copying setup.sh over
-    ###########################################################################
-    h1("Copying setup.sh")
-    remote_home_dir = f"/home/{_FLAG_USER_NAME.value}/"
-    try_command([
-        "gcloud", "compute", "scp",
-        f"{_SCRIPT_DIRECTORY}/setup.sh",
-        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
-      ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
-    )
+  remote_home_dir = f"/home/{_FLAG_USER_NAME.value}/"
 
-    ###########################################################################
-    # Running setup.sh
-    ###########################################################################
+  h1("Module args:")
+  args = utils.get_module_args(argv[0])
+  print(args)
+  print("")
 
-    # Build Screen Command
-    project_dir = (
-      f"{remote_home_dir}eli5_retrieval_large_lm/"
-    )
-    training_script_uri = (
-      f"launchers/scripts/training.sh"
-    )
-    training_command = shlex.quote(
-      f"cd {project_dir} && bash {training_script_uri}; exec bash"
-    )
-    screen_command = f"screen -S training -dm bash -c {training_command}"
+  if not subprocess.check_output(["which", "gcloud"]).strip():
+    raise RuntimeError("`gcloud` is not in the path. `ctpu` won't work.")
 
-    # Build Setup Command
-    setup_command = f"source {remote_home_dir}setup.sh"
+  if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
+    create_tpu_using_gcloud()
 
-    # Run the Commands Remotely
-    h1("Running setup.sh")
-    try_command([
-        "gcloud", "compute", "ssh",
-        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-        f"--command={setup_command}"
-    ],
-      "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
-    )
 
-    h1("Running training")
-    try_command([
-        "gcloud", "compute", "ssh",
-        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-        f"--command={screen_command}"
-    ],
-      "Running training", sleep_time=_FLAG_SLEEP_TIME.value
-    )
+  if _FLAG_TPU_ONLY.value:
+    return
 
-    h1("All done.")
+  ###########################################################################
+  # Beginning of the VM-only stuff
+  ###########################################################################
+  start_using_gcloud()
+
+  ###########################################################################
+  # Copying bashrc over
+  ###########################################################################
+  h1("Copying bashrc")
+  path_local_file = f"{_SCRIPT_DIRECTORY}/bashrc"
+  try_command([
+    "gcloud", "compute", "scp", path_local_file,
+    f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
+  ], "Copying bashrc", sleep_time=_FLAG_SLEEP_TIME.value
+  )
+
+  ###########################################################################
+  # Copying setup.sh over
+  ###########################################################################
+  h1("Copying setup.sh")
+  remote_home_dir = f"/home/{_FLAG_USER_NAME.value}/"
+  try_command([
+    "gcloud", "compute", "scp",
+    f"{_SCRIPT_DIRECTORY}/setup.sh",
+    f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
+  ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
+  )
+
+  ##############################################################################
+  # Running setup.sh
+  ##############################################################################
+
+  # Build Screen Command
+  project_dir = (
+    f"{remote_home_dir}eli5_retrieval_large_lm/"
+  )
+  training_script_uri = (
+    f"launchers/scripts/training.sh"
+  )
+  training_command = shlex.quote(
+    f"cd {project_dir} && bash {training_script_uri}; exec bash"
+  )
+  screen_command = f"screen -S training -dm bash -c {training_command}"
+
+  # Build Setup Command
+  setup_command = f"source {remote_home_dir}setup.sh"
+
+  # Run the Commands Remotely
+  h1("Running setup.sh")
+  try_command([
+    "gcloud", "compute", "ssh",
+    f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
+    f"--command={setup_command}"
+  ],
+    "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
+  )
+
+  h1("Running training")
+  try_command([
+    "gcloud", "compute", "ssh",
+    f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
+    f"--command={screen_command}"
+  ],
+    "Running training", sleep_time=_FLAG_SLEEP_TIME.value
+  )
+
+  h1("All done.")
 
 
 if __name__ == "__main__":
-    app.run(main)
+  app.run(main)
