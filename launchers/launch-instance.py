@@ -315,12 +315,12 @@ def main(argv):
     run_command = shlex.quote(
       f"cd {project_dir} && bash {training_script_uri}"
     )
-    screen_command = shlex.quote(f"screen -S training -dm {run_command}")
+    screen_command = f"screen -S training -dm {run_command}"
 
     try_command([
         "gcloud", "compute", "ssh",
         f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-        f"--command=bash -c " +
+        f"--command=" +
         # f"source {target_dir}setup.sh; "
         screen_command
     ],
