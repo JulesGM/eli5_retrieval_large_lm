@@ -326,7 +326,7 @@ def main(argv):
       f"launchers/scripts/training.sh"
     )
     training_command = shlex.quote(
-      f"cd {project_dir} && bash {training_script_uri}"
+      f"cd {project_dir} && bash {training_script_uri}; exec bash"
     )
     screen_command = f"screen -S training -dm bash -c {training_command}"
 
