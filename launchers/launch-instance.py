@@ -34,6 +34,12 @@ import utils
 _ZONE_TPUV2 = "us-central1-f"
 _ZONE_TPUV3 = "europe-west4-a"
 
+_FLAG_RUN_SCRIPT = flags.DEFINE_boolean(
+  "run-script",
+  True,
+  "Whether or not to run the training script at the end."
+)
+
 _FLAG_BOOT_DISK_SIZE = flags.DEFINE_integer(
   "boot-disk-size",
   250,
@@ -66,7 +72,7 @@ _FLAG_PREEMPTIBLE_VM = flags.DEFINE_boolean(
   "Whether or not we want the VM instance to be preemtible."
 )
 _FLAG_SLEEP_TIME = flags.DEFINE_integer(
-  "sleep_time",
+  "sleep-time",
   10,
   "How long to sleep between retries in seconds. "
   "Is also the duration of the sleep between major "
@@ -346,14 +352,15 @@ def main(argv):
     "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
   )
 
-  h1("Running training")
-  try_command([
-    "gcloud", "compute", "ssh",
-    f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-    f"--command={screen_command}"
-  ],
-    "Running training", sleep_time=_FLAG_SLEEP_TIME.value
-  )
+  if _FLAG_RUN_SCRIPT.value:
+    h1("Running training")
+    try_command([
+      "gcloud", "compute", "ssh",
+      f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
+      f"--command={screen_command}"
+    ],
+      "Running training", sleep_time=_FLAG_SLEEP_TIME.value
+    )
 
   h1("All done.")
 

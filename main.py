@@ -67,6 +67,8 @@ FLAGS = flags.FLAGS
 # It is now recommended that one uses the return values of DEFINE_* calls
 # because they can by pytype-checked and the intellisense/linter can know
 # if the wrong variable name is called, contrarily to the FLAGS.* case.
+
+
 FLAG_APPROACH_TYPE = flags.DEFINE_enum(
     "approach_type",
     None,
