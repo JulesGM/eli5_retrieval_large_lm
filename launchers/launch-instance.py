@@ -262,12 +262,18 @@ def create_tpu_using_gcloud():
 
 
 def git_is_dirty(directory=_SCRIPT_DIRECTORY) -> bool:
-  os.chdir(_SCRIPT_DIRECTORY)
+  os.chdir(directory)
   root = subprocess.check_output([
     "git", "rev-parse", "--show-toplevel",
   ]).decode().strip()
   return git.Repo(root).is_dirty(untracked_files=False)
 
+def git_get_commit_id(directory=_SCRIPT_DIRECTORY) -> str:
+  os.chdir(directory)
+  commit_id = subprocess.check_output([
+    "git", "rev-parse", "HEAD"
+  ]).decode().strip()
+  return commit_id
 
 def main(argv):
   if len(argv) > 1:
@@ -340,7 +346,11 @@ def main(argv):
   screen_command = f"screen -S training -dm bash -c {training_command}"
 
   # Build Setup Command
-  setup_command = f"source {remote_home_dir}setup.sh"
+  setup_command = shlex.quote([
+    f"source",
+    f"{remote_home_dir}setup.sh",
+    f"{git_get_commit_id()}",
+  ])
 
   # Run the Commands Remotely
   h1("Running setup.sh")
