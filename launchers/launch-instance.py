@@ -13,9 +13,11 @@ import pathlib
 import operator
 import os
 from rich import print
+import shlex
 import subprocess
 import sys
 import time
+import yaml
 
 from absl import flags
 from absl import app
@@ -23,7 +25,7 @@ from absl import app
 import colored_traceback.auto  # pylint: disable=unused-import
 import git
 import pexpect
-import shlex
+
 
 _SCRIPT_DIRECTORY = pathlib.Path(__file__).resolve().parent
 sys.path.append(str(_SCRIPT_DIRECTORY.parent))
@@ -119,6 +121,13 @@ _FLAG_VM_ONLY = flags.DEFINE_boolean(
   "Great for running other tasks that don't require a TPU, "
   "but that still require a similar setup.",
 )
+
+_FLAG_NGROK_CONFIG_PATH = flags.DEFINE_string(
+  "ngrok-config-path",
+  None,
+  "Path to the ngrok config."
+)
+
 
 def flatten_once(collection):
   asd = []
@@ -275,6 +284,14 @@ def git_get_commit_id(directory=_SCRIPT_DIRECTORY) -> str:
   ]).decode().strip()
   return commit_id
 
+def send_file(input_file, dir):
+  try_command([
+    "gcloud", "compute", "scp",
+    input_file,
+    f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{dir}",
+  ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
+  )
+
 def main(argv):
   if len(argv) > 1:
     raise RuntimeError(argv)
@@ -307,26 +324,24 @@ def main(argv):
   start_using_gcloud()
 
   ###########################################################################
-  # Copying bashrc over
+  # Copying files over
   ###########################################################################
   h1("Copying bashrc")
-  path_local_file = f"{_SCRIPT_DIRECTORY}/bashrc"
-  try_command([
-    "gcloud", "compute", "scp", path_local_file,
-    f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
-  ], "Copying bashrc", sleep_time=_FLAG_SLEEP_TIME.value
+  send_file(
+    f"{_SCRIPT_DIRECTORY}/bashrc",
+    remote_home_dir
   )
 
-  ###########################################################################
-  # Copying setup.sh over
-  ###########################################################################
   h1("Copying setup.sh")
-  remote_home_dir = f"/home/{_FLAG_USER_NAME.value}/"
-  try_command([
-    "gcloud", "compute", "scp",
+  send_file(
     f"{_SCRIPT_DIRECTORY}/setup.sh",
-    f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{remote_home_dir}",
-  ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
+    remote_home_dir
+  )
+
+  h1("Copying start_notebooks.sh")
+  send_file(
+    f"{_SCRIPT_DIRECTORY}/start_notebooks.sh",
+    remote_home_dir
   )
 
   ##############################################################################
@@ -345,12 +360,18 @@ def main(argv):
   )
   screen_command = f"screen -S training -dm bash -c {training_command}"
 
-  # Build Setup Command
-  setup_command = shlex.join([
+
+  command_list = [
     f"source",
     f"{remote_home_dir}setup.sh",
     f"{git_get_commit_id()}",
-  ])
+  ]
+  if _FLAG_NGROK_CONFIG_PATH.value:
+    with open(_FLAG_NGROK_CONFIG_PATH.value) as f_in:
+      command_list.append(yaml.load(f_in, Loader=yaml.Loader)["authtoken"])
+
+  # Build Setup Command
+  setup_command = shlex.join(command_list)
 
   # Run the Commands Remotely
   h1("Running setup.sh")
@@ -371,7 +392,6 @@ def main(argv):
     ],
       "Running training", sleep_time=_FLAG_SLEEP_TIME.value
     )
-
   h1("All done.")
 
 

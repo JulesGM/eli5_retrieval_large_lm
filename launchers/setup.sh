@@ -1,5 +1,6 @@
 # Arguments:
 # $1: commit id
+# $2: ngrok token
 
 # set -x
 set -e
@@ -23,7 +24,8 @@ title () {
 
 
 title "Installing generic dependencies"
-sudo apt-get -qq install -y wget subversion 1>/dev/null
+echo "Warning: apt-get takes a while to become available."
+sudo apt-get -qq install -y wget 1>/dev/null
 
 
 ################################################################################
@@ -37,13 +39,14 @@ wget -q https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh \
 bash ~/Anaconda.sh -b -p "$HOME/anaconda" 1>/dev/null
 ./anaconda/bin/conda init 1>/dev/null
 export PATH="/home/jules/anaconda/bin:$PATH"
+rm Anaconda.sh
 
 
 title "Updating Conda"
 conda upgrade -q --all -y 1>/dev/null
 
 
-title "Installing Python dependencies"
+title "Installing the basic Python dependencies"
 if [[ "$(which python)" == "/usr/bin/python" ]]; then
   echo "Error: Wrong executable. Quitting."
   which python
@@ -115,6 +118,15 @@ rm "$HOME/.bashrc"
 
 title "Copying new bashrc"
 cp "$HOME/bashrc" "$HOME/.bashrc"
+
+
+title "Getting and setting up ngrok"
+wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
+unzip ngrok-stable-linux-amd64.zip
+rm ngrok-stable-linux-amd64.zip
+if [[ "$2" != "" ]] ; then
+  ./ngrok authtoken "$2"
+fi
 
 
 title "Done. :)"

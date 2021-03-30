@@ -1,7 +1,8 @@
 {
-  "vm-only": false,
   "instance-type": "n1-standard-32",
+  "ngrok-config-path": "/Users/jules/.ngrok2/ngrok.yml",
   "preemptible-vm": false,
+  "preemptible-tpu": false,
   "use-tpus": true,
-  "preemptible-tpu": false
+  "vm-only": false
 }
