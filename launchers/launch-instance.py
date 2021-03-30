@@ -346,11 +346,15 @@ def main(argv):
   screen_command = f"screen -S training -dm bash -c {training_command}"
 
   # Build Setup Command
-  setup_command = shlex.join([
-    f"source",
-    f"{remote_home_dir}setup.sh",
-    f"{git_get_commit_id()}",
-  ])
+  setup_command = shlex.quote(
+    " ".join(
+      [
+        f"source",
+        f"{remote_home_dir}setup.sh",
+        f"{git_get_commit_id()}",
+      ]
+    )
+  )
 
   # Run the Commands Remotely
   h1("Running setup.sh")

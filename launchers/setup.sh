@@ -1,15 +1,16 @@
 # Arguments:
 # $1: commit id
-if [[ -z "$1" ]] ; then
-  echo "Didn't get a commit hash."
-  abort
-fi
-
 
 # set -x
 set -e
 set -u
 TPU_NAME=jules
+
+
+if [[ -z "$1" ]] ; then
+  echo "Didn't get a commit hash."
+  exit
+fi
 
 
 title () {
@@ -43,7 +44,7 @@ title "Installing python dependencies"
 if [[ "$(which python)" == "/usr/bin/python" ]]; then
   echo "Error: Wrong executable. Quitting."
   which python
-  abort
+  exit
 fi
 python -m pip install tf_nightly cloud-tpu-client -q 1>/dev/null
 
@@ -52,6 +53,7 @@ title "Download the project repo"
 git clone https://github.com/JulesGM/eli5_retrieval_large_lm.git \
   --recurse-submodules 1>/dev/null
 
+
 title "Checkout the correct commit and verify."
 git checkout "$1"
 CURRENT_COMMIT_ID="$(git rev-parse HEAD)"
@@ -59,8 +61,9 @@ if [[ "$1" != "$CURRENT_COMMIT_ID" ]] ; then
   echo "Commit ids don't match:"
   echo -e "\tAs argument: $1"
   echo -e "\tCurrent:     $1"
-  abort
+  exit
 fi
+
 
 title "Config the Git account"
 git config --global user.email "jgagnonmarchand@gmail.com"
