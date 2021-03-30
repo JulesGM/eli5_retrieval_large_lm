@@ -26,6 +26,9 @@ title "Installing generic dependencies"
 sudo apt-get -qq install -y wget subversion 1>/dev/null
 
 
+################################################################################
+# Python, first part
+################################################################################
 title "Downloading and installing Conda"
 # Download
 wget -q https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh \
@@ -40,13 +43,21 @@ title "Updating Conda"
 conda upgrade -q --all -y 1>/dev/null
 
 
-title "Installing python dependencies"
+title "Installing Python dependencies"
 if [[ "$(which python)" == "/usr/bin/python" ]]; then
   echo "Error: Wrong executable. Quitting."
   which python
   exit
 fi
 python -m pip install tf_nightly cloud-tpu-client -q 1>/dev/null
+
+
+################################################################################
+# Git & Repo
+################################################################################
+title "Config the Git account"
+git config --global user.email "jgagnonmarchand@gmail.com"
+git config --global user.name "Jules Gagnon-Marchand"
 
 
 title "Download the project repo"
@@ -59,17 +70,15 @@ git checkout "$1"
 CURRENT_COMMIT_ID="$(git rev-parse HEAD)"
 if [[ "$1" != "$CURRENT_COMMIT_ID" ]] ; then
   echo "Commit ids don't match:"
-  echo -e "\tAs argument: $1"
-  echo -e "\tCurrent:     $1"
+  echo -e "\tAs argument:   $1"
+  echo -e "\tCurrent:       $1"
   exit
 fi
 
 
-title "Config the Git account"
-git config --global user.email "jgagnonmarchand@gmail.com"
-git config --global user.name "Jules Gagnon-Marchand"
-
-
+################################################################################
+# Rest
+################################################################################
 title "Testing TPUs"
 pushd eli5_retrieval_large_lm
 python -c "
