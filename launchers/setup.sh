@@ -66,8 +66,10 @@ git clone https://github.com/JulesGM/eli5_retrieval_large_lm.git \
 
 
 title "Checkout the correct commit and verify."
+pushd eli5_retrieval_large_lm
 git checkout "$1"
 CURRENT_COMMIT_ID="$(git rev-parse HEAD)"
+popd
 if [[ "$1" != "$CURRENT_COMMIT_ID" ]] ; then
   echo "Commit ids don't match:"
   echo -e "\tAs argument:   $1"
