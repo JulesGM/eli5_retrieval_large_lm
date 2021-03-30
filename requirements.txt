@@ -10,6 +10,7 @@ rich
 tensorflow>=2.4
 tensor2tensor
 tensorflow_hub
+toolz
 tensorflow_text
 transformers
 tqdm

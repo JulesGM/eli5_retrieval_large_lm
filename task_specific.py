@@ -336,6 +336,7 @@ def _make_maybe_retrieve_and_merge_fn(
                      "context": "\nContext:\n",
                      "answer": "\nAnswer:\n"
                      }
+
       helper_word_token_ids = {}
       for k in helper_text:
         ids = tf.constant(tokenizer.encode(helper_text[k]), dtype=tf.int32)

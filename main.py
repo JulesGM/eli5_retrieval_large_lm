@@ -43,6 +43,7 @@ import tensorflow as tf
 import tensorflow.python.distribute.values as values
 import tensorflow.python.framework.ops as ops
 import tf_utils
+import toolz
 import transformers
 import utils
 
@@ -437,9 +438,9 @@ def save_model(
 
 
 def main(argv):
-  #######################################################################
+  ##############################################################################
   # Initial Setup. Logging, Flags, Random seeds.
-  #######################################################################
+  ##############################################################################
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
   absl_logging.use_python_logging()
@@ -638,9 +639,9 @@ def main(argv):
     secs_since_last_ckpt = time.time()
     # Model checkpoints are saved to the tmp_directory and then rsynced to GCS
 
-    ##########################################################################
+    ############################################################################
     # Prepare the statistics and the logging facilities.
-    ##########################################################################
+    ############################################################################
     # Tensorboard
     train_log_dir = os.path.join(instance_output_dir, "tensorboard", "train")
     eval_log_dir = os.path.join(instance_output_dir, "tensorboard", "eval")
@@ -699,9 +700,9 @@ def main(argv):
     # forever.
     ############################################################################
     for epoch in itertools.count():
-      ####################################################################
+      ##########################################################################
       # Epoch Setup
-      ####################################################################
+      ##########################################################################
       LOGGER.debug("EPOCH %d START", epoch)
       # Shuffle differently every epoch
       with utils.log_duration(
@@ -736,7 +737,6 @@ def main(argv):
           operator.ne, tf_utils.current_accelerator_type(), "CPU"
         )
 
-
         # Invert split
         if split == "train":
           split = "eval"
@@ -747,7 +747,6 @@ def main(argv):
         if split == "train":
           did_at_least_one_training_batch = False
 
-
         ########################################################################
         # Take slices from the dataset iterator
         # ======================================================================
@@ -755,24 +754,25 @@ def main(argv):
         # We do this by using an `itertools.islice` of the dataset iterators.
         ########################################################################
         if split == "train":
-          dataset_iterator = itertools.islice(
-              train_ds_instance, FLAG_BATCHES_BETWEEN_EVALS.value
+          dataset_iterator = toolz.take(
+              FLAG_BATCHES_BETWEEN_EVALS.value, train_ds_instance
           )
         else:
           # The evaluation dataset generator is infinite, reshuffles everytime
           # it gets to its end.
           # Still, we take a fixed size slice form that infinite generator.
-          dataset_iterator = itertools.islice(
-              eval_ds_instance, FLAG_NUMBER_EVAL_BATCHES.value
+          dataset_iterator = toolz.take(
+              FLAG_NUMBER_EVAL_BATCHES.value, eval_ds_instance
           )
 
         LOGGER.debug("Batching")
         for batch in dataset_iterator:
           if FLAG_LOG_SAMPLES.value:
-            ######################################################################
+            ####################################################################
             # Print elements of the dataset
-            ######################################################################
-            # Make ourselves resistant to values possibly being a PerReplica object
+            ####################################################################
+            # Make ourselves resistant to values possibly being a PerReplica
+            # object
             LOGGER.warning(
               f"%(red)sLOGGING SAMPLES. THIS IS VERY SLOW.%(reset)s",
               dict(
