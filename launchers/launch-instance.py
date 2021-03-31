@@ -275,6 +275,7 @@ def git_is_dirty(directory=_SCRIPT_DIRECTORY) -> bool:
   root = subprocess.check_output([
     "git", "rev-parse", "--show-toplevel",
   ]).decode().strip()
+
   return git.Repo(root).is_dirty(untracked_files=False)
 
 def git_get_commit_id(directory=_SCRIPT_DIRECTORY) -> str:
