@@ -237,12 +237,12 @@ def start_using_gcloud():
   print("")
   time.sleep(_FLAG_SLEEP_TIME.value)
 
-  h2("Listing the instances.")
-  command = [
-    "gcloud", "compute", "instances", "list"
-  ]
-  run_gcloud_command(command)
-  print("")
+  # h2("Listing the instances.")
+  # command = [
+  #   "gcloud", "compute", "instances", "list"
+  # ]
+  # run_gcloud_command(command)
+  # print("")
 
 
 def create_tpu_using_gcloud():
@@ -301,7 +301,7 @@ def send_file(input_file, dir):
     "gcloud", "compute", "scp",
     input_file,
     f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{dir}",
-  ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
+  ], f"Copying `{input_file}`", sleep_time=_FLAG_SLEEP_TIME.value
   )
 
 

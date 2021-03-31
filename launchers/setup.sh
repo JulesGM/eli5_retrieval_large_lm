@@ -41,7 +41,7 @@ title () {
 
 
 title "Installing generic dependencies"
-echo "${ORANGE}Warning: apt-get takes a while to become available.${RESETALL}"
+echo -e "${ORANGE}Warning: apt-get takes a while to become available.${RESETALL}"
 sudo apt-get -qq install -y wget 1>/dev/null
 
 
