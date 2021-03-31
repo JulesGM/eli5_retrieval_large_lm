@@ -278,12 +278,23 @@ def git_is_dirty(directory=_SCRIPT_DIRECTORY) -> bool:
 
   return git.Repo(root).is_dirty(untracked_files=False)
 
+
+def git_is_pushed(directory=_SCRIPT_DIRECTORY) -> bool:
+  os.chdir(directory)
+  root = subprocess.check_output([
+    "git", "rev-parse", "--show-toplevel",
+  ]).decode().strip()
+  repo = git.Repo(root)
+  return "Your branch is up to date with" in repo.git.status()
+
+
 def git_get_commit_id(directory=_SCRIPT_DIRECTORY) -> str:
   os.chdir(directory)
   commit_id = subprocess.check_output([
     "git", "rev-parse", "HEAD"
   ]).decode().strip()
   return commit_id
+
 
 def send_file(input_file, dir):
   try_command([
@@ -293,11 +304,12 @@ def send_file(input_file, dir):
   ], "Copying setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
   )
 
+
 def main(argv):
   if len(argv) > 1:
     raise RuntimeError(argv)
 
-  if git_is_dirty():
+  if git_is_dirty() or not git_is_pushed():
     raise RuntimeError(
       "The git directory is dirty. Push the changes before running."
     )
