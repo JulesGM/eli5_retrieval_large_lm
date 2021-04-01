@@ -245,7 +245,7 @@ def create_lm_ds_kilt_eli5(
         context_window_size
     )
 
-  @tf.function
+  # @tf.function
   def parse(sample):
     example = tf.io.parse_single_example(sample, description)
     output = {}
@@ -298,7 +298,7 @@ def _make_maybe_retrieve_and_merge_fn(
   tf_function_kwargs = {} if tf_function_kwargs is None else tf_function_kwargs
   not_test_split = ds_split != constants.SplitChoices.test
 
-  @tf.function(**tf_function_kwargs)
+  # @tf.function(**tf_function_kwargs)
   def maybe_retrieve_and_merge(
       batch,
   ):
@@ -543,7 +543,7 @@ def _tokenize_and_concat_while_loop(
       ])[1]
 
 
-@tf.function
+# @tf.function
 def _prepare_samples_w_retrieval(
     split,
     batch_size,
