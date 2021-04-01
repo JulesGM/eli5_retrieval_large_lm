@@ -138,13 +138,13 @@ title "Copying new bashrc"
 cp "$HOME/bashrc" "$HOME/.bashrc"
 
 
-title "Getting and setting up ngrok"
-wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
-unzip ngrok-stable-linux-amd64.zip
-rm ngrok-stable-linux-amd64.zip
-if [[ "$2" != "" ]] ; then
-  ./ngrok authtoken "$2"
-fi
+# title "Getting and setting up ngrok"
+# wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
+# unzip ngrok-stable-linux-amd64.zip
+# rm ngrok-stable-linux-amd64.zip
+# if [[ "$2" != "" ]] ; then
+#   ./ngrok authtoken "$2"
+# fi
 
 
 title "Done. :)"
