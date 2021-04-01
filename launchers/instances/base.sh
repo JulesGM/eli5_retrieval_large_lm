@@ -1,5 +1,4 @@
 set -e
-# LINE="$(python3 -c "import os; print('#' * int(os.popen('stty size', 'r').read().split()[1]))")"
 LINE="##################################################"
 
 
