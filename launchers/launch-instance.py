@@ -169,10 +169,11 @@ def validate_instance_type_flag():
   # Validate the value:
   instance_tuple = _FLAG_INSTANCE_TYPE.value.strip().split("-")
   utils.check_equal(len(instance_tuple), 3)
-  utils.check_equal(instance_tuple[0], "n1")
-  utils.check_equal(instance_tuple[1], "standard")
+  utils.check_contained(instance_tuple[0], {"n1", "n2"})
+
+  utils.check_equal(instance_tuple[1], {"standard", "highmem"})
   num_cpus = int(instance_tuple[2])
-  # utils.check_operator(operator.le, num_cpus, 16)
+  utils.check_operator(operator.le, num_cpus, 64)
   utils.check_operator(operator.ge, num_cpus, 0)
 
 
