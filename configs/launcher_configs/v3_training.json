@@ -1,6 +1,5 @@
 {
   "instance-type": "n2-highmem-8",
-  "ngrok-config-path": "/Users/jules/.ngrok2/ngrok.yml",
   "preemptible-vm": false,
   "preemptible-tpu": false,
   "use-tpus": true,

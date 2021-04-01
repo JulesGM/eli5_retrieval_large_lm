@@ -20,7 +20,7 @@
   "num_retrievals": 5,
   "approach_type": "cached_pretok",
   "optimizer_type": "adafactor",
-  "learning_rate": 5E-7,
+  "learning_rate": 5E-6,
 
   "max_length_generation": 350,
 

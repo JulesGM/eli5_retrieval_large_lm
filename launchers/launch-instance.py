@@ -122,11 +122,11 @@ _FLAG_VM_ONLY = flags.DEFINE_boolean(
   "but that still require a similar setup.",
 )
 
-_FLAG_NGROK_CONFIG_PATH = flags.DEFINE_string(
-  "ngrok-config-path",
-  None,
-  "Path to the ngrok config."
-)
+# _FLAG_NGROK_CONFIG_PATH = flags.DEFINE_string(
+#   "ngrok-config-path",
+#   None,
+#   "Path to the ngrok config."
+# )
 
 
 def flatten_once(collection):
@@ -380,9 +380,9 @@ def main(argv):
     f"{remote_home_dir}setup.sh",
     f"{git_get_commit_id()}",
   ]
-  if _FLAG_NGROK_CONFIG_PATH.value:
-    with open(_FLAG_NGROK_CONFIG_PATH.value) as f_in:
-      command_list.append(yaml.load(f_in, Loader=yaml.Loader)["authtoken"])
+  # if _FLAG_NGROK_CONFIG_PATH.value:
+  #   with open(_FLAG_NGROK_CONFIG_PATH.value) as f_in:
+  #     command_list.append(yaml.load(f_in, Loader=yaml.Loader)["authtoken"])
 
   # Build Setup Command
   setup_command = shlex.join(command_list)
