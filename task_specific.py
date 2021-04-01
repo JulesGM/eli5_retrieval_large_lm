@@ -502,7 +502,7 @@ def _make_maybe_retrieve_and_merge_fn(
   return maybe_retrieve_and_merge
 
 
-@tf.function
+# @tf.function
 def _tokenize_and_concat_while_loop(
     all_retrieved_tokens,
     indices,

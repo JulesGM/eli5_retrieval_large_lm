@@ -3,6 +3,7 @@ colorama
 colored_traceback
 datasets
 google-cloud-storage
+markdown_strings
 numpy
 psutil
 pytype
