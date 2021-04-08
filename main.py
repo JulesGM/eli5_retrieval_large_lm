@@ -329,53 +329,53 @@ def build_regular_training_step(
         average_loss = tf.math.reduce_mean(partial_loss)
 
       losses.append(average_loss)
-      grads = tape.gradient(average_loss, model.trainable_variables)
+      grads = tape.gfradient(average_loss, model.trainable_variables)
       optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
     return tf.math.reduce_mean(losses)
   return training_step
 
 
-def build_manual_data_parallel_training_step(
-    models,
-    optimizer,
-    tf_function_kwargs = None
-):
-  """Data parallel training step without using tf.distribute.Strategies."""
-
-  tf_function_kwargs = {} if tf_function_kwargs is None else tf_function_kwargs
-  train_vars = models[0].trainable_variables
-
-  @tf.function(**tf_function_kwargs)
-  def fn(input_ids, label_ids):
-    losses = []
-    accum_gradient = [tf.zeros_like(this_var) for this_var in train_vars]
-
-    # Get some gradients per model instance
-    for i in range(0, FLAG_BATCH_SIZE.value // FLAG_BATCH_SPLIT.value):
-      with tf.GradientTape() as tape:
-        start = i * FLAG_BATCH_SPLIT.value
-        end = (i + 1) * FLAG_BATCH_SPLIT.value
-        partial_loss = models[i](
-            input_ids[start:end],
-            labels=label_ids[start:end],
-            training=True,
-            return_dict=True
-        ).loss
-        gradients = tape.gradient(partial_loss, models[i].trainable_variables)
-        accum_gradient = [acum_grad + grad for acum_grad, grad
-                          in zip(accum_gradient, gradients)]
-      losses.append(partial_loss)
-
-    accum_gradient = [this_grad / len(models) for this_grad in accum_gradient]
-    # Apply to first model
-    optimizer.apply_gradients(
-        zip(accum_gradient, models[0].trainable_variables)
-        )
-
-    with tf.device("/job:localhost/replica:0/task:0/device:CPU:0"):
-      return tf.math.reduce_mean(losses)
-  return fn
+# def build_manual_data_parallel_training_step(
+#     models,
+#     optimizer,
+#     tf_function_kwargs = None
+# ):
+#   """Data parallel training step without using tf.distribute.Strategies."""
+#
+#   tf_function_kwargs = {} if tf_function_kwargs is None else tf_function_kwargs
+#   train_vars = models[0].trainable_variables
+#
+#   @tf.function(**tf_function_kwargs)
+#   def fn(input_ids, label_ids):
+#     losses = []
+#     accum_gradient = [tf.zeros_like(this_var) for this_var in train_vars]
+#
+#     # Get some gradients per model instance
+#     for i in range(0, FLAG_BATCH_SIZE.value // FLAG_BATCH_SPLIT.value):
+#       with tf.GradientTape() as tape:
+#         start = i * FLAG_BATCH_SPLIT.value
+#         end = (i + 1) * FLAG_BATCH_SPLIT.value
+#         partial_loss = models[i](
+#             input_ids[start:end],
+#             labels=label_ids[start:end],
+#             training=True,
+#             return_dict=True
+#         ).loss
+#         gradients = tape.gradient(partial_loss, models[i].trainable_variables)
+#         accum_gradient = [acum_grad + grad for acum_grad, grad
+#                           in zip(accum_gradient, gradients)]
+#       losses.append(partial_loss)
+#
+#     accum_gradient = [this_grad / len(models) for this_grad in accum_gradient]
+#     # Apply to first model
+#     optimizer.apply_gradients(
+#         zip(accum_gradient, models[0].trainable_variables)
+#         )
+#
+#     with tf.device("/job:localhost/replica:0/task:0/device:CPU:0"):
+#       return tf.math.reduce_mean(losses)
+#   return fn
 
 
 def build_evaluation_step(
@@ -874,10 +874,10 @@ def main(argv):
             LOGGER.debug(
               "[%s] - Real num replicas: %s",  split, actual_num_replicas
             )
-            LOGGER.debug("[%s] - Loss: %s",  split, loss)
-            # LOGGER.debug("[%s] - Loss values: %s", split, loss.values)
-
             average_loss = float(tf.math.reduce_mean(loss.values).numpy())
+
+            LOGGER.debug("[%s] - Loss: %s",  str(split), str(average_loss))
+
           else:
             average_loss = float(loss.numpy())
 
@@ -886,6 +886,7 @@ def main(argv):
             loss.values if isinstance(loss, values.PerReplica) else loss,
             "Numerics failed."
           )
+
           now = time.time()
           batch_duration = now - prev_batch_end
           prev_batch_end = now
