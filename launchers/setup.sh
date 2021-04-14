@@ -48,9 +48,17 @@ if [[ $# -lt $EXPECTED_NUM_ARGS ]]; then
     echo "Expected at least $EXPECTED_NUM_ARGS args. Got $#."
     exit 4
 fi
+
 GIT_COMMIT_ID="$1"
 IS_ONE_VM_INSTANCE="$2"
 NGROK_TOKEN="$3"
+
+if [[ "$IS_ONE_VM_INSTANCE" != "True" &&  "$IS_ONE_VM_INSTANCE" != False ]]
+then
+  echo "Expected \$2 to be either \"True\" or \"False\". Got \"$2.\""
+  exit 4
+fi
+
 
 
 ################################################################################
@@ -64,7 +72,7 @@ sudo apt-get -qq install -y wget 1>/dev/null
 ################################################################################
 # Python, first part
 ################################################################################
-if "IS_ONE_VM_INSTANCE" ; then
+if [[ "$IS_ONE_VM_INSTANCE" == "True" ]] ; then
   alias python='$(which python3)'
 else
   title "Downloading and installing Conda"
