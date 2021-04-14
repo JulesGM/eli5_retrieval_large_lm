@@ -1,0 +1,10 @@
+{
+  "instance-type": "n2-highmem-8",
+  "preemptible-vm": false,
+  "preemptible-tpu": false,
+  "use-tpus": true,
+  "vm-only": false,
+  "ngrok-config-path": "/Users/jules/.ngrok2/ngrok.yml",
+  "use-alpha-gcloud": false,
+  "region": "europe-west4-a"
+}

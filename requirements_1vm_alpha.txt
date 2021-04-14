@@ -1,0 +1,17 @@
+absl-py
+colorama
+colored_traceback
+datasets
+google-cloud-storage
+markdown_strings
+numpy
+psutil
+pytype
+rich
+tensor2tensor
+tensorflow_hub
+toolz
+tensorflow_text
+transformers
+tqdm
+xeus-python

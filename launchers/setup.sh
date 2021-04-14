@@ -1,10 +1,17 @@
 # Arguments:
 # $1: commit id
-# $2: ngrok token
-
+# $2: Whether this is an alpha one-vm instance or not
+# $3: ngrok token
+################################################################################
+# Options
+################################################################################
 # set -x
 set -e
 set -u
+
+################################################################################
+# Definition of constants
+################################################################################
 TPU_NAME=jules
 
 RESETALL='\033[0m'
@@ -24,13 +31,6 @@ LIGHTPURPLE='\033[1;35m'
 LIGHTCYAN='\033[1;36m'
 WHITE='\033[1;37m'
 
-
-if [[ -z "$1" ]] ; then
-  echo "Didn't get a commit hash."
-  exit
-fi
-
-
 title () {
   local LINE="##################################################"
   echo -e "\n"
@@ -40,6 +40,22 @@ title () {
 }
 
 
+################################################################################
+# Parse Command Line Options
+################################################################################
+EXPECTED_NUM_ARGS=3
+if [[ $# -lt $EXPECTED_NUM_ARGS ]]; then
+    echo "Expected at least $EXPECTED_NUM_ARGS args. Got $#."
+    exit 4
+fi
+GIT_COMMIT_ID="$1"
+IS_ONE_VM_INSTANCE="$2"
+NGROK_TOKEN="$3"
+
+
+################################################################################
+# Install Generic Dependencies
+################################################################################
 title "Installing generic dependencies"
 echo -e "${ORANGE}Warning: apt-get takes a while to become available.${RESETALL}"
 sudo apt-get -qq install -y wget 1>/dev/null
@@ -48,19 +64,23 @@ sudo apt-get -qq install -y wget 1>/dev/null
 ################################################################################
 # Python, first part
 ################################################################################
-title "Downloading and installing Conda"
-# Download
-wget -q https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh \
-    -O ~/Anaconda.sh 1>/dev/null
-# Run install file in automated mode
-bash ~/Anaconda.sh -b -p "$HOME/anaconda" 1>/dev/null
-./anaconda/bin/conda init 1>/dev/null
-export PATH="/home/jules/anaconda/bin:$PATH"
-rm Anaconda.sh
+if "IS_ONE_VM_INSTANCE" ; then
+  alias python='$(which python3)'
+else
+  title "Downloading and installing Conda"
+  # Download
+  wget -q https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh \
+      -O ~/Anaconda.sh 1>/dev/null
 
+  # Run install file in automated mode
+  bash ~/Anaconda.sh -b -p "$HOME/anaconda" 1>/dev/null
+  ./anaconda/bin/conda init 1>/dev/null
+  export PATH="/home/jules/anaconda/bin:$PATH"
+  rm Anaconda.sh
 
-title "Updating Conda"
-conda upgrade -q --all -y 1>/dev/null
+  title "Updating Conda"
+  conda upgrade -q --all -y 1>/dev/null
+fi;
 
 
 title "Installing the basic Python dependencies"
@@ -69,7 +89,7 @@ if [[ "$(which python)" == "/usr/bin/python" ]]; then
   which python
   exit
 fi
-python -m pip install tf_nightly cloud-tpu-client -q 1>/dev/null
+python -m pip install cloud-tpu-client -q 1>/dev/null
 
 
 ################################################################################
@@ -87,11 +107,11 @@ git clone https://github.com/JulesGM/eli5_retrieval_large_lm.git \
 
 title "Checkout the correct commit and verify."
 pushd eli5_retrieval_large_lm
-echo "git checkout \"$1\""
-git checkout "$1"
-CURRENT_COMMIT_ID="$(git rev-parse HEAD)"
+echo "git checkout \"$GIT_COMMIT_ID\""
+git checkout "$GIT_$COMMIT_ID"
+CHECKED_OUT_COMMIT_ID="$(git rev-parse HEAD)"
 popd
-if [[ "$1" != "$CURRENT_COMMIT_ID" ]] ; then
+if [[ "$GIT_COMMIT_ID" != "$CHECKED_OUT_COMMIT_ID" ]] ; then
   echo "Commit ids don't match:"
   echo -e "\tAs argument:   $1"
   echo -e "\tCurrent:       $1"
@@ -138,13 +158,11 @@ title "Copying new bashrc"
 cp "$HOME/bashrc" "$HOME/.bashrc"
 
 
-# title "Getting and setting up ngrok"
-# wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
-# unzip ngrok-stable-linux-amd64.zip
-# rm ngrok-stable-linux-amd64.zip
-# if [[ "$2" != "" ]] ; then
-#   ./ngrok authtoken "$2"
-# fi
+ title "Getting and setting up ngrok"
+ wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
+ unzip ngrok-stable-linux-amd64.zip
+ rm ngrok-stable-linux-amd64.zip
+ ./ngrok authtoken "$NGROK_TOKEN"
 
 
 title "Done. :)"

@@ -8,7 +8,7 @@ pytype launchers/launch-instance.py -P . --check-variable-types \
   FLAGS="$(python json_to_args.py configs/launcher_configs/query_cacher_tfrecord.json)" && \
   python launchers/launch-instance.py $FLAGS
 """
-import json
+
 import pathlib
 import operator
 import os
@@ -21,27 +21,26 @@ import yaml
 
 from absl import flags
 from absl import app
-
-import colored_traceback.auto  # pylint: disable=unused-import
 import git
-import pexpect
 
 
 _SCRIPT_DIRECTORY = pathlib.Path(__file__).resolve().parent
 sys.path.append(str(_SCRIPT_DIRECTORY.parent))
 import utils
 
-# TODO(julesgm): Only instance of configuration not being fully seperated from
-#  code
-_ZONE_TPUV2 = "us-central1-f"
-_ZONE_TPUV3 = "europe-west4-a"
+_ONEVM_RUNTIME_VERSION = "v2-alpha"
 
+
+_FLAG_ZONE = flags.DEFINE_string(
+  "gcloud-zone",
+  "europe-west4-a",
+  "Which Google Cloud zone to use.",
+)
 _FLAG_RUN_SCRIPT = flags.DEFINE_boolean(
   "run-script",
   True,
   "Whether or not to run the training script at the end."
 )
-
 _FLAG_BOOT_DISK_SIZE = flags.DEFINE_integer(
   "boot-disk-size",
   250,
@@ -57,7 +56,6 @@ _FLAG_INSTANCE_NAME = flags.DEFINE_string(
   "jules",
   "Name of the VM and TPU instances.",
 )
-
 _FLAG_INSTANCE_TYPE = flags.DEFINE_string(
   "instance-type",
   None,
@@ -122,18 +120,19 @@ _FLAG_VM_ONLY = flags.DEFINE_boolean(
   "but that still require a similar setup.",
 )
 
-# _FLAG_NGROK_CONFIG_PATH = flags.DEFINE_string(
-#   "ngrok-config-path",
-#   None,
-#   "Path to the ngrok config."
-# )
+_FLAG_NGROK_CONFIG_PATH = flags.DEFINE_string(
+  "ngrok-config-path",
+  None,
+  "Path of the user configuration file for ngrok."
+)
+
+_FLAG_USE_ONE_VM = flags.DEFINE_boolean(
+  "use-one-vm",
+  False,
+  "Whether to use the 1VM setup, for IE jax."
+)
 
 
-def flatten_once(collection):
-  asd = []
-  for x in collection:
-    asd.extend(x)
-  return asd
 
 
 def h1(text):
@@ -178,11 +177,11 @@ def validate_instance_type_flag():
 
 
 def run_gcloud_command(command):
-  print(f"Running gcloud command:\n\t{command}")
+  # print(f"Running gcloud command:\n\t{command}")
   subprocess.run(command, check=True)
 
 
-def start_using_gcloud():
+def create_vm():
   if not _FLAG_INSTANCE_TYPE.value:
     raise ValueError(
       "Using the full gcloud launcher is useless "
@@ -190,13 +189,6 @@ def start_using_gcloud():
     )
 
   validate_instance_type_flag()
-
-  if _FLAG_TPU_TYPE.value == "v2":
-    zone = _ZONE_TPUV2
-  elif _FLAG_TPU_TYPE.value == "v3":
-    zone = _ZONE_TPUV3
-  else:
-    raise RuntimeError(_FLAG_TPU_TYPE.value)
 
   positional = [
     "gcloud", "compute", "instances", "create", _FLAG_INSTANCE_NAME.value,
@@ -206,7 +198,7 @@ def start_using_gcloud():
     positional.append("--preemptible")
 
   named_flags = {
-    "--zone": zone,
+    "--zone": _FLAG_ZONE.value,
     "--image-family": _FLAG_IMAGE_FAMILY.value,
     "--image-project": "deeplearning-platform-release",
     "--machine-type": _FLAG_INSTANCE_TYPE.value,
@@ -238,19 +230,31 @@ def start_using_gcloud():
   print("")
   time.sleep(_FLAG_SLEEP_TIME.value)
 
-  # h2("Listing the instances.")
-  # command = [
-  #   "gcloud", "compute", "instances", "list"
-  # ]
-  # run_gcloud_command(command)
-  # print("")
 
+def create_one_vm_vm():
+  runtime = _ONEVM_RUNTIME_VERSION
 
-def create_tpu_using_gcloud():
+  if runtime == "v2-alpha":
+    utils.check_equal(_FLAG_TPU_QTY.value, 8)
+
+  command = ["gcloud", "alpha", "compute", "tpus",
+             "tpu-vm", "create",
+             f"${_FLAG_INSTANCE_NAME.value}",
+             f"--zone=${_FLAG_ZONE.value}",
+             f"--accelerator-type=${make_accelerator_type()}",
+             f"--version={runtime}",
+             ]
+
+  run_gcloud_command(command)
+
+def make_accelerator_type() -> str:
   utils.check_equal(_FLAG_TPU_TYPE.value, "v3")
   utils.check_equal(_FLAG_TPU_QTY.value, "8")
   assert not _FLAG_PREEMPTIBLE_TPU.value, _FLAG_PREEMPTIBLE_TPU.value
+  return f"{_FLAG_TPU_TYPE.value}-{_FLAG_TPU_QTY.value}"
 
+
+def create_tpu_using_gcloud():
   positional_cmd = [
     "gcloud", "compute", "tpus", "create", _FLAG_INSTANCE_NAME.value
   ]
@@ -260,7 +264,7 @@ def create_tpu_using_gcloud():
 
   named_arguments = {
     "--version": "2.4.1",
-    "--accelerator-type": f"{_FLAG_TPU_TYPE.value}-{_FLAG_TPU_QTY.value}",
+    "--accelerator-type": make_accelerator_type(),
   }
 
   cmd = positional_cmd + [
@@ -325,7 +329,9 @@ def main(argv):
   if not subprocess.check_output(["which", "gcloud"]).strip():
     raise RuntimeError("`gcloud` is not in the path. `ctpu` won't work.")
 
-  if _FLAG_USE_TPUS.value and not _FLAG_VM_ONLY.value:
+  if (_FLAG_USE_TPUS.value
+      and not _FLAG_VM_ONLY.value
+      and not _FLAG_USE_ONE_VM.value):
     create_tpu_using_gcloud()
 
 
@@ -335,7 +341,10 @@ def main(argv):
   ###########################################################################
   # Beginning of the VM-only stuff
   ###########################################################################
-  start_using_gcloud()
+  if _FLAG_USE_ONE_VM.value:
+    create_one_vm_vm()
+  else:
+    create_vm()
 
   ###########################################################################
   # Copying files over
@@ -373,16 +382,16 @@ def main(argv):
     f"cd {project_dir} && bash {training_script_uri}; exec bash"
   )
   screen_command = f"screen -S training -dm bash -c {training_command}"
-
-
   command_list = [
-    f"source",
-    f"{remote_home_dir}setup.sh",
-    f"{git_get_commit_id()}",
+      f"source",
+      f"{remote_home_dir}setup.sh",
+      f"{git_get_commit_id()}",
   ]
-  # if _FLAG_NGROK_CONFIG_PATH.value:
-  #   with open(_FLAG_NGROK_CONFIG_PATH.value) as f_in:
-  #     command_list.append(yaml.load(f_in, Loader=yaml.Loader)["authtoken"])
+
+  command_list.append(_FLAG_USE_ONE_VM.value)
+
+  with open(_FLAG_NGROK_CONFIG_PATH.value) as f_in:
+    command_list.append(yaml.load(f_in, Loader=yaml.Loader)["authtoken"])
 
   # Build Setup Command
   setup_command = shlex.join(command_list)

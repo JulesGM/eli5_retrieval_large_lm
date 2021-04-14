@@ -1,0 +1,5 @@
+{
+  "ngrok-config-path": "/Users/jules/.ngrok2/ngrok.yml",
+  "use-alpha-gcloud": true,
+  "region": "europe-west4-a"
+}

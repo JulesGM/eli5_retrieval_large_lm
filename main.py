@@ -69,7 +69,11 @@ FLAGS = flags.FLAGS
 # because they can by pytype-checked and the intellisense/linter can know
 # if the wrong variable name is called, contrarily to the FLAGS.* case.
 
-
+FLAG_ALPHA_MODE = flags.DEFINE_bool(
+  "alpha_mode",
+  False,
+  "",
+)
 FLAG_APPROACH_TYPE = flags.DEFINE_enum(
     "approach_type",
     None,
