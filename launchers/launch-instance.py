@@ -419,7 +419,7 @@ def main(argv):
       f"{git_get_commit_id()}",
   ]
 
-  setup_command_list.append(_FLAG_USE_ONE_VM.value)
+  setup_command_list.append(str(_FLAG_USE_ONE_VM.value))
   with open(_FLAG_NGROK_CONFIG_PATH.value) as f_in:
     setup_command_list.append(
       yaml.load(f_in, Loader=yaml.Loader)["authtoken"]
