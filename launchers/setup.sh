@@ -73,7 +73,7 @@ sudo apt-get -qq install -y wget 1>/dev/null
 # Python, first part
 ################################################################################
 if [[ "$IS_ONE_VM_INSTANCE" == "True" ]] ; then
-  alias python='$(which python3)'
+  alias python="$(which python3)"
 else
   title "Downloading and installing Conda"
   # Download
@@ -92,11 +92,6 @@ fi;
 
 
 title "Installing the basic Python dependencies"
-if [[ "$(which python)" == "/usr/bin/python" ]]; then
-  echo "Error: Wrong executable. Quitting."
-  which python
-  exit
-fi
 python -m pip install cloud-tpu-client -q 1>/dev/null
 
 
@@ -166,11 +161,11 @@ title "Copying new bashrc"
 cp "$HOME/bashrc" "$HOME/.bashrc"
 
 
- title "Getting and setting up ngrok"
- wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
- unzip ngrok-stable-linux-amd64.zip
- rm ngrok-stable-linux-amd64.zip
- ./ngrok authtoken "$NGROK_TOKEN"
+title "Getting and setting up ngrok"
+wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
+unzip ngrok-stable-linux-amd64.zip
+rm ngrok-stable-linux-amd64.zip
+./ngrok authtoken "$NGROK_TOKEN"
 
 
 title "Done. :)"
