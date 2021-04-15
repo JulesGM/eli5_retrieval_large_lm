@@ -72,9 +72,7 @@ sudo apt-get -qq install -y wget 1>/dev/null
 ################################################################################
 # Python, first part
 ################################################################################
-if [[ "$IS_ONE_VM_INSTANCE" == "True" ]] ; then
-  alias python="$(which python3)"
-else
+if [[ "$IS_ONE_VM_INSTANCE" != "True" ]] ; then
   title "Downloading and installing Conda"
   # Download
   wget -q https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh \
@@ -88,11 +86,11 @@ else
 
   title "Updating Conda"
   conda upgrade -q --all -y 1>/dev/null
-fi;
+fi
 
 
 title "Installing the basic Python dependencies"
-python -m pip install cloud-tpu-client -q 1>/dev/null
+python3 -m pip install cloud-tpu-client -q 1>/dev/null
 
 
 ################################################################################
@@ -127,7 +125,7 @@ fi
 ################################################################################
 title "Testing TPUs"
 pushd eli5_retrieval_large_lm
-python -c "
+python3 -c "
 import sys
 import tf_utils
 tf_utils.init_tpus(sys.argv[1])
@@ -138,7 +136,7 @@ popd
 
 title "Installing all of the python requirements"
 pushd eli5_retrieval_large_lm
-python -m pip install -r requirements.txt -q 1>/dev/null
+python3 -m pip install -r requirements.txt -q 1>/dev/null
 popd
 
 
