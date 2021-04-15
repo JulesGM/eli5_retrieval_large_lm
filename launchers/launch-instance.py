@@ -312,7 +312,7 @@ def send_file(input_file, target):
 
     helper_text = f"Copying file `{input_file}`."
     try_command(
-      command, helper_text, sleep_time=_FLAG_SLEEP_TIME.value
+      command, helper_text, shell=True, sleep_time=_FLAG_SLEEP_TIME.value
     )
   else:
     try_command(
