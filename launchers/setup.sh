@@ -122,6 +122,12 @@ fi
 ################################################################################
 # Rest
 ################################################################################
+title "Installing all of the python requirements"
+pushd eli5_retrieval_large_lm
+python3 -m pip install -r requirements.txt -q 1>/dev/null
+popd
+
+
 title "Testing TPUs"
 pushd eli5_retrieval_large_lm
 python3 -c "
@@ -130,12 +136,6 @@ import tf_utils
 tf_utils.init_tpus(sys.argv[1])
 print('\n'.join(map(str, tf_utils.devices_to_use())))
 " "$TPU_NAME"
-popd
-
-
-title "Installing all of the python requirements"
-pushd eli5_retrieval_large_lm
-python3 -m pip install -r requirements.txt -q 1>/dev/null
 popd
 
 
