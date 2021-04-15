@@ -16,16 +16,15 @@
 """Various utilities that involve Tensorflow and accelerator devices.
 """
 import logging
-from typing import Dict, List, Optional, Tuple, Union  # pylint: disable=g-import-not-at-top
+from typing import Any, Dict, List, Optional, Tuple, Union  # pylint: disable=g-import-not-at-top
 
 import colorama
 import dataclasses
-import numpy as np
 import tensorflow as tf
-import tensorflow.python.distribute.values as values
-import tensorflow.python.eager.context as context
-import tensorflow.python.framework.ops as ops
-import tensorflow.python.tpu.topology as topology
+from tensorflow.python.distribute import values
+from tensorflow.python.eager import context
+from tensorflow.python.framework import ops
+from tensorflow.python.tpu import topology
 import utils
 
 LOGGER = logging.getLogger(__name__)
