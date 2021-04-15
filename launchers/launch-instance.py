@@ -303,6 +303,8 @@ def git_get_commit_id(directory=_SCRIPT_DIRECTORY) -> str:
 
 def send_file(input_file, target):
   if _FLAG_USE_ONE_VM.value:
+    filename = os.path.basename(input_file)
+    target = os.path.join(target, filename)
     internal_command = shlex.quote(f"cat > {shlex.quote(target)}")
     command = "gcloud alpha compute tpus tpu-vm ssh "
     command += (f"{shlex.quote(_FLAG_USER_NAME.value)}@"
