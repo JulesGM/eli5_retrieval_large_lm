@@ -239,9 +239,9 @@ def create_one_vm_vm():
 
   command = ["gcloud", "alpha", "compute", "tpus",
              "tpu-vm", "create",
-             f"${_FLAG_INSTANCE_NAME.value}",
-             f"--zone=${_FLAG_ZONE.value}",
-             f"--accelerator-type=${make_accelerator_type()}",
+             f"{_FLAG_INSTANCE_NAME.value}",
+             f"--zone={_FLAG_ZONE.value}",
+             f"--accelerator-type={make_accelerator_type()}",
              f"--version={runtime}",
              ]
 
