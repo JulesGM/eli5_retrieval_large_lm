@@ -326,7 +326,7 @@ def send_file(input_file, target):
 
 def ssh_command(command: str, helper_text: str) -> None:
   if _FLAG_USE_ONE_VM.value:
-    ssh_start = ["gcloud", "alpha", "compute", "tpus", "tpu-vms", "ssh"]
+    ssh_start = ["gcloud", "alpha", "compute", "tpus", "tpu-vm", "ssh"]
   else:
     ssh_start = ["gcloud", "compute", "ssh",]
 
