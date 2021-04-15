@@ -305,10 +305,9 @@ def send_file(input_file, target):
   if _FLAG_USE_ONE_VM.value:
     internal_command = shlex.quote(f"cat > {shlex.quote(target)}")
     command = "gcloud alpha compute tpus tpu-vms ssh "
-    command += shlex.join([
-        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-        f"--command={internal_command}"
-    ])
+    command += (f"{shlex.quote(_FLAG_USER_NAME.value)}@"
+                f"{shlex.quote(_FLAG_INSTANCE_NAME.value)} "
+                f"--command={internal_command}")
     command = f"cat {shlex.quote(input_file)} | " + command
 
     helper_text = f"Copying file `{input_file}`."
