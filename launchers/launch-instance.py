@@ -8,7 +8,7 @@ pytype launchers/launch-instance.py -P . --check-variable-types \
   FLAGS="$(python json_to_args.py configs/launcher_configs/query_cacher_tfrecord.json)" && \
   python launchers/launch-instance.py $FLAGS
 """
-
+import colored_traceback.auto
 import pathlib
 import operator
 import os
@@ -235,7 +235,7 @@ def create_one_vm_vm():
   runtime = _ONEVM_RUNTIME_VERSION
 
   if runtime == "v2-alpha":
-    utils.check_equal(_FLAG_TPU_QTY.value, 8)
+    utils.check_equal(_FLAG_TPU_QTY.value, "8")
 
   command = ["gcloud", "alpha", "compute", "tpus",
              "tpu-vm", "create",
