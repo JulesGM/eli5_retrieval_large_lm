@@ -5,6 +5,6 @@
   "use-tpus": true,
   "vm-only": false,
   "ngrok-config-path": "/Users/jules/.ngrok2/ngrok.yml",
-  "use-alpha-gcloud": false,
-  "region": "europe-west4-a"
+  "use-one-vm": false,
+  "gcloud-zone": "europe-west4-a"
 }
