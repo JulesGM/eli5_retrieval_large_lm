@@ -177,7 +177,7 @@ def validate_instance_type_flag():
 
 
 def run_gcloud_command(command, shell=False):
-  print(f"Running gcloud command:\n\t{command}")
+  print(f"Running gcloud command (with shell={shell}):\n\t{command}")
   subprocess.run(command, check=True, shell=shell)
 
 
