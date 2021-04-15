@@ -149,10 +149,10 @@ def h3(text):
   print(text)
 
 
-def try_command(command, title, sleep_time):
+def try_command(command, title, sleep_time, shell=False):
   while True:
     try:
-      run_gcloud_command(command)
+      run_gcloud_command(command, shell=shell)
       print("")
       break
     except subprocess.SubprocessError as err:
@@ -176,9 +176,9 @@ def validate_instance_type_flag():
   utils.check_operator(operator.ge, num_cpus, 0)
 
 
-def run_gcloud_command(command):
+def run_gcloud_command(command, shell):
   print(f"Running gcloud command:\n\t{command}")
-  subprocess.run(command, check=True)
+  subprocess.run(command, check=True, shell=shell)
 
 
 def create_vm():
@@ -301,13 +301,43 @@ def git_get_commit_id(directory=_SCRIPT_DIRECTORY) -> str:
   return commit_id
 
 
-def send_file(input_file, dir):
-  try_command([
-    "gcloud", "compute", "scp",
-    input_file,
-    f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{dir}",
-  ], f"Copying `{input_file}`", sleep_time=_FLAG_SLEEP_TIME.value
-  )
+def send_file(input_file, target):
+  if _FLAG_USE_ONE_VM.value:
+    internal_command = shlex.quote(f"cat > {shlex.quote(target)}")
+    command = "gcloud alpha compute tpus tpu-vms ssh "
+    command += shlex.join([
+        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
+        f"--command={internal_command}"
+    ])
+    command = f"cat {shlex.quote(input_file)} | " + command
+
+    helper_text = f"Copying file `{input_file}`."
+    try_command(
+      command, helper_text, sleep_time=_FLAG_SLEEP_TIME.value
+    )
+  else:
+    try_command(
+        [
+        "gcloud", "compute", "scp",
+        input_file,
+        f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}:{target}",
+      ], f"Copying `{input_file}`", sleep_time=_FLAG_SLEEP_TIME.value
+    )
+
+
+def ssh_command(command: str, helper_text: str) -> None:
+  if _FLAG_USE_ONE_VM.value:
+    ssh_start = ["gcloud", "alpha", "compute", "tpus", "tpu-vms", "ssh"]
+  else:
+    ssh_start = ["gcloud", "compute", "ssh",]
+
+  h1(helper_text)
+  try_command(ssh_start + [
+      f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
+      f"--command={command}"
+    ],
+      helper_text, sleep_time=_FLAG_SLEEP_TIME.value
+    )
 
 
 def main(argv):
@@ -352,19 +382,19 @@ def main(argv):
   h1("Copying bashrc")
   send_file(
     f"{_SCRIPT_DIRECTORY}/bashrc",
-    remote_home_dir
+    remote_home_dir,
   )
 
   h1("Copying setup.sh")
   send_file(
     f"{_SCRIPT_DIRECTORY}/setup.sh",
-    remote_home_dir
+    remote_home_dir,
   )
 
   h1("Copying start_notebooks.sh")
   send_file(
     f"{_SCRIPT_DIRECTORY}/start_notebooks.sh",
-    remote_home_dir
+    remote_home_dir,
   )
 
   ##############################################################################
@@ -381,40 +411,26 @@ def main(argv):
   training_command = shlex.quote(
     f"cd {project_dir} && bash {training_script_uri}; exec bash"
   )
-  screen_command = f"screen -S training -dm bash -c {training_command}"
-  command_list = [
+  setup_command_list = [
       f"source",
       f"{remote_home_dir}setup.sh",
       f"{git_get_commit_id()}",
   ]
 
-  command_list.append(_FLAG_USE_ONE_VM.value)
-
+  setup_command_list.append(_FLAG_USE_ONE_VM.value)
   with open(_FLAG_NGROK_CONFIG_PATH.value) as f_in:
-    command_list.append(yaml.load(f_in, Loader=yaml.Loader)["authtoken"])
+    setup_command_list.append(
+      yaml.load(f_in, Loader=yaml.Loader)["authtoken"]
+    )
 
   # Build Setup Command
-  setup_command = shlex.join(command_list)
-
-  # Run the Commands Remotely
-  h1("Running setup.sh")
-  try_command([
-    "gcloud", "compute", "ssh",
-    f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-    f"--command={setup_command}"
-  ],
-    "Running setup.sh", sleep_time=_FLAG_SLEEP_TIME.value
-  )
+  setup_command = shlex.join(setup_command_list)
+  ssh_command(setup_command, "Running setup.sh")
 
   if _FLAG_RUN_SCRIPT.value:
-    h1("Running training")
-    try_command([
-      "gcloud", "compute", "ssh",
-      f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
-      f"--command={screen_command}"
-    ],
-      "Running training", sleep_time=_FLAG_SLEEP_TIME.value
-    )
+    screen_command = f"screen -S training -dm bash -c {training_command}"
+    ssh_command(screen_command, "Running training")
+
   h1("All done.")
 
 
