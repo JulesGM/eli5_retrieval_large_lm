@@ -60,7 +60,6 @@ then
 fi
 
 
-
 ################################################################################
 # Install Generic Dependencies
 ################################################################################
@@ -109,7 +108,7 @@ git clone https://github.com/JulesGM/eli5_retrieval_large_lm.git \
 title "Checkout the correct commit and verify."
 pushd eli5_retrieval_large_lm
 echo "git checkout \"$GIT_COMMIT_ID\""
-git checkout "$GIT_$COMMIT_ID"
+git checkout "$GIT_COMMIT_ID"
 CHECKED_OUT_COMMIT_ID="$(git rev-parse HEAD)"
 popd
 if [[ "$GIT_COMMIT_ID" != "$CHECKED_OUT_COMMIT_ID" ]] ; then
