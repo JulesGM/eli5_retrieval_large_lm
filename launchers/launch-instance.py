@@ -373,8 +373,7 @@ def main(argv):
   # Beginning of the VM-only stuff
   ###########################################################################
   if _FLAG_USE_ONE_VM.value:
-    # create_one_vm_vm()
-    pass
+    create_one_vm_vm()
   else:
     create_vm()
 
