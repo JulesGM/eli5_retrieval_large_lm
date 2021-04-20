@@ -412,13 +412,19 @@ def main(argv):
   training_command = shlex.quote(
     f"cd {project_dir} && bash {training_script_uri}; exec bash"
   )
-  setup_command_list = [f"source", f"{remote_home_dir}setup.sh",
-                        f"{git_get_commit_id()}", str(_FLAG_USE_ONE_VM.value)]
 
   with open(_FLAG_NGROK_CONFIG_PATH.value) as f_in:
-    setup_command_list.append(
-      yaml.load(f_in, Loader=yaml.Loader)["authtoken"]
-    )
+    ngrok_auth = yaml.load(f_in, Loader=yaml.Loader)["authtoken"]
+
+  setup_command_list = [
+    f"source",
+    f"{remote_home_dir}setup.sh",
+    f"{git_get_commit_id()}", # Argument 1: git commit id
+    str(_FLAG_USE_ONE_VM.value), # Argument 2: whether we are using one vm
+    ngrok_auth, # Argument 3: ngrok auth token
+    _FLAG_INSTANCE_NAME.value, # Argument 4: Instance name
+  ]
+
 
   # Build Setup Command
   setup_command = shlex.join(setup_command_list)

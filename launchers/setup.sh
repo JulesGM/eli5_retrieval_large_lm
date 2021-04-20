@@ -2,6 +2,7 @@
 # $1: commit id
 # $2: Whether this is an alpha one-vm instance or not
 # $3: ngrok token
+# $4: INSTANCE_NAME
 ################################################################################
 # Options
 ################################################################################
@@ -52,14 +53,14 @@ fi
 GIT_COMMIT_ID="$1"
 IS_ONE_VM_INSTANCE="$2"
 NGROK_TOKEN="$3"
+INSTANCE_NAME="$4"
+
 
 if [[ "$IS_ONE_VM_INSTANCE" != "True" &&  "$IS_ONE_VM_INSTANCE" != "False" ]]
 then
   echo "Expected \$2 to be either \"True\" or \"False\". Got \"$2.\""
   exit 4
 fi
-
-TPU_NAME=
 
 
 ################################################################################
@@ -137,7 +138,7 @@ import sys
 import tf_utils
 tf_utils.init_tpus(sys.argv[1])
 print('\n'.join(map(str, tf_utils.devices_to_use())))
-" "$TPU_NAME"
+" "$INSTANCE_NAME"
 popd
 exit
 
