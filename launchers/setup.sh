@@ -48,6 +48,7 @@ if [[ $# -lt $EXPECTED_NUM_ARGS ]]; then
     exit 4
 fi
 
+
 GIT_COMMIT_ID="$1"
 IS_ONE_VM_INSTANCE="$2"
 NGROK_TOKEN="$3"
@@ -57,11 +58,8 @@ then
   echo "Expected \$2 to be either \"True\" or \"False\". Got \"$2.\""
   exit 4
 fi
-if [[ "$IS_ONE_VM_INSTANCE" == "True" ]] ; then
-  TPU_NAME
-else
-  TPU_NAME=jules
-fi
+
+TPU_NAME=
 
 
 ################################################################################
