@@ -103,24 +103,25 @@ git config --global user.email "jgagnonmarchand@gmail.com"
 git config --global user.name "Jules Gagnon-Marchand"
 
 
-title "Download the project repo"
-git clone https://github.com/JulesGM/eli5_retrieval_large_lm.git \
-  --recurse-submodules 1>/dev/null
+if [[ ! -d eli5_retrieval_large_lm ]] ; then
+  title "Download the project repo"
+  git clone https://github.com/JulesGM/eli5_retrieval_large_lm.git \
+    --recurse-submodules 1>/dev/null
 
 
-title "Checkout the correct commit and verify."
-pushd eli5_retrieval_large_lm
-echo "git checkout \"$GIT_COMMIT_ID\""
-git checkout "$GIT_COMMIT_ID"
-CHECKED_OUT_COMMIT_ID="$(git rev-parse HEAD)"
-popd
-if [[ "$GIT_COMMIT_ID" != "$CHECKED_OUT_COMMIT_ID" ]] ; then
-  echo "Commit ids don't match:"
-  echo -e "\tAs argument:   $1"
-  echo -e "\tCurrent:       $1"
-  exit
+  title "Checkout the correct commit and verify."
+  pushd eli5_retrieval_large_lm
+  echo "git checkout \"$GIT_COMMIT_ID\""
+  git checkout "$GIT_COMMIT_ID"
+  CHECKED_OUT_COMMIT_ID="$(git rev-parse HEAD)"
+  popd
+  if [[ "$GIT_COMMIT_ID" != "$CHECKED_OUT_COMMIT_ID" ]] ; then
+    echo "Commit ids don't match:"
+    echo -e "\tAs argument:   $1"
+    echo -e "\tCurrent:       $1"
+    exit
+  fi
 fi
-
 
 ################################################################################
 # Rest
