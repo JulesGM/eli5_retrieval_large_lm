@@ -257,7 +257,7 @@ FLAG_MAX_LENGTH_GENERATION = flags.DEFINE_integer(
 
 FLAG_SAVE_PERIOD_MIN = flags.DEFINE_integer(
     "save-period-min",
-    20,
+    1,
     "How many minutes to wait between saves."
 )
 
@@ -436,8 +436,6 @@ def save_model(
     subprocess.Popen(
       command,
       shell=True,
-      # `shell=True` makes it so we let the shell find which gsutil to use.
-      # `shlex.join` makes the join safe.
     )
 
 
@@ -640,7 +638,7 @@ def main(argv):
         model_or_replicas, tf_function_flags
     )
 
-    secs_since_last_ckpt = time.time()
+    timestamp_last_ckpt_secs = time.time()
     # Model checkpoints are saved to the tmp_directory and then rsynced to GCS
 
     ############################################################################
@@ -937,11 +935,15 @@ def main(argv):
           ######################################################################
           # Save every `FLAG_SAVE_PERIOD_MIN.value` minutes.
           ######################################################################
-          if (time.time() - secs_since_last_ckpt) / (
-              60 * FLAG_SAVE_PERIOD_MIN.value) >= 1:
-            dur = (time.time() - secs_since_last_ckpt) / (
-                60 * FLAG_SAVE_PERIOD_MIN.value)
-            secs_since_last_ckpt = time.time()
+          delta_sec = time.time() - timestamp_last_ckpt_secs
+          utils.check_operator(operator.gt, delta_sec, 0)
+          period_sec = 60 * FLAG_SAVE_PERIOD_MIN.value
+          utils.check_operator(operator.gt, period_sec, 0)
+          ratio = delta_sec / period_sec
+          if ratio >= 1:
+            import pdb; pdb.set_trace()
+            dur = delta_sec / 60.
+            timestamp_last_ckpt_secs = time.time()
             LOGGER.debug("SAVING MODEL - CAUSE: DURATION - %0.2f min", dur)
             save_model(
                 train_steps=step_counters["train"],

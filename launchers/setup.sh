@@ -12,7 +12,6 @@ set -u
 ################################################################################
 # Definition of constants
 ################################################################################
-TPU_NAME=jules
 
 RESETALL='\033[0m'
 RED='\033[0;31m'
@@ -53,10 +52,15 @@ GIT_COMMIT_ID="$1"
 IS_ONE_VM_INSTANCE="$2"
 NGROK_TOKEN="$3"
 
-if [[ "$IS_ONE_VM_INSTANCE" != "True" &&  "$IS_ONE_VM_INSTANCE" != False ]]
+if [[ "$IS_ONE_VM_INSTANCE" != "True" &&  "$IS_ONE_VM_INSTANCE" != "False" ]]
 then
   echo "Expected \$2 to be either \"True\" or \"False\". Got \"$2.\""
   exit 4
+fi
+if [[ "$IS_ONE_VM_INSTANCE" == "True" ]] ; then
+  TPU_NAME
+else
+  TPU_NAME=jules
 fi
 
 
@@ -137,7 +141,7 @@ tf_utils.init_tpus(sys.argv[1])
 print('\n'.join(map(str, tf_utils.devices_to_use())))
 " "$TPU_NAME"
 popd
-
+exit
 
 title "Installing gcsfuse"
 sudo apt-get update
