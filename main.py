@@ -40,6 +40,8 @@ from rich import table
 import task_specific
 import tensor2tensor.utils.adafactor
 import tensorflow as tf
+
+
 import tensorflow.python.distribute.values as values
 import tensorflow.python.framework.ops as ops
 import tf_utils
@@ -47,6 +49,13 @@ import toolz
 import transformers
 import utils
 
+
+TF_VERSION_REQ = (2, 5)
+TF_OPERATOR = operator.eq
+TF_VERSION = tuple(map(int, tf.__version__.split(".")[:2]))
+utils.check_operator(
+  TF_OPERATOR, TF_VERSION, TF_VERSION_REQ
+)
 
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
@@ -295,6 +304,13 @@ FLAG_TRAIN_ON_INPUT = flags.DEFINE_boolean(
   "Whether to also train over the questions and the retrievals."
 )
 
+FLAG_TPU_IS_LOCAL = flags.DEFINE_boolean(
+  "tpu-is-local",
+  True,
+  "Whether the TPU is on the same machine as the python interpreter, ie, "
+  "whether we are using a one-vm machine.",
+)
+
 ################################################################################
 # Training and evaluation step functions.
 ################################################################################
@@ -491,7 +507,9 @@ def main(argv):
   tpu_setup = None
   # current_acelerator_type is always "CPU" in the beginning with TPUs
   if tf_utils.current_accelerator_type() == "CPU":
-    tpu_setup = tf_utils.init_tpus(FLAG_TPU_NAME.value)
+    tpu_setup = tf_utils.init_tpus(
+      tpu_name=FLAG_TPU_NAME.value, local=FLAG_TPU_IS_LOCAL.value
+    )
 
   LOGGER.debug("Devices we are computing on:\n%s",
                utils.wrap_iterable(map(str, tf_utils.devices_to_use())))

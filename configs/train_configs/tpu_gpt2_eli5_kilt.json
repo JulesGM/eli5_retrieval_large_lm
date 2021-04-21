@@ -25,7 +25,7 @@
   "max_length_generation": 350,
 
   "log_samples": false,
-
+  "tpu-is-local": true,
   "do-resume": false,
   "resume-path": ""
 }

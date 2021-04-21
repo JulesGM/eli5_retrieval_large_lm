@@ -10,8 +10,8 @@ pytype
 rich
 tensor2tensor
 tensorflow_hub
+tensorflow-text==2.5rc0
 toolz
-tensorflow_text
 transformers
 tqdm
 xeus-python
