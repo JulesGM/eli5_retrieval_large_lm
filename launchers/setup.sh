@@ -137,9 +137,19 @@ pushd eli5_retrieval_large_lm
 python3 -c "
 import sys
 import tf_utils
-tf_utils.init_tpus(sys.argv[1])
+
+if len(sys.argv):
+  assert sys.argv[1] in {'True', 'False'}, sys.argv[1]
+
+if len(sys.argv) and sys.argv[1] == 'True':
+  tf_utils.init_tpus(local=True)
+elif len(sys.argv) > 1 and sys.argv[2]:
+  tf_utils.init_tpus(tpu_name=sys.argv[1])
+else:
+  tf_utils.init_tpus()
+
 print('\n'.join(map(str, tf_utils.devices_to_use())))
-" "$INSTANCE_NAME"
+" "$IS_ONE_VM_INSTANCE" "$INSTANCE_NAME"
 popd
 exit
 
