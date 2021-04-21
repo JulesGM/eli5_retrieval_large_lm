@@ -68,6 +68,7 @@ fi
 ################################################################################
 title "Installing generic dependencies"
 echo -e "${ORANGE}Warning: apt-get takes a while to become available.${RESETALL}"
+sudo apt-get -qq update
 sudo apt-get -qq install python3-venv -y wget 1>/dev/null
 
 
