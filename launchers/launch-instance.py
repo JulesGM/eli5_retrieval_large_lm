@@ -326,20 +326,25 @@ def send_file(input_file, target):
     )
 
 
-def ssh_command(command: str, helper_text: str) -> None:
+def ssh_command(command: str, helper_text: str, retry: bool = False) -> None:
   if _FLAG_USE_ONE_VM.value:
     ssh_start = ["gcloud", "alpha", "compute", "tpus", "tpu-vm", "ssh"]
   else:
     ssh_start = ["gcloud", "compute", "ssh",]
 
   h1(helper_text)
-  try_command(ssh_start + [
+  ssh_command_ = ssh_start + [
       f"{_FLAG_USER_NAME.value}@{_FLAG_INSTANCE_NAME.value}",
       f"--command={command}"
-    ],
-      helper_text, sleep_time=_FLAG_SLEEP_TIME.value
-    )
+    ]
 
+  if retry:
+    try_command(ssh_command_,
+        helper_text,
+        sleep_time=_FLAG_SLEEP_TIME.value,
+      )
+  else:
+    run_gcloud_command(ssh_command_, shell=False)
 
 def main(argv):
   if len(argv) > 1:
@@ -428,11 +433,11 @@ def main(argv):
 
   # Build Setup Command
   setup_command = shlex.join(setup_command_list)
-  ssh_command(setup_command, "Running setup.sh")
+  ssh_command(setup_command, "Running setup.sh", retry=False)
 
   if _FLAG_RUN_SCRIPT.value:
     screen_command = f"screen -S training -dm bash -c {training_command}"
-    ssh_command(screen_command, "Running training")
+    ssh_command(screen_command, "Running training", retry=False)
 
   h1("All done.")
 
