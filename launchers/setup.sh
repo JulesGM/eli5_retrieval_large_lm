@@ -130,7 +130,7 @@ title "Installing all of the python requirements"
 pushd eli5_retrieval_large_lm
 if [[ "$IS_ONE_VM_INSTANCE" == "True" ]] ; then
   REQUIREMENTS_PATH=requirements_1vm_alpha.txt
-else:
+else
   REQUIREMENTS_PATH=requirements.txt
 fi
 python3 -m pip install -r "$REQUIREMENTS_PATH" -q 1>/dev/null
