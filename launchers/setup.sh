@@ -142,7 +142,7 @@ pushd eli5_retrieval_large_lm
 python3 -c "
 import sys
 import tensorflow as tf
-assert tf.__version__ == '2.5.0'
+assert tf.__version__ == '2.5.0', tf.__version__
 import tf_utils
 
 if len(sys.argv):
