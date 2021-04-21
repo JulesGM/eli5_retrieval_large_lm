@@ -68,7 +68,7 @@ fi
 ################################################################################
 title "Installing generic dependencies"
 echo -e "${ORANGE}Warning: apt-get takes a while to become available.${RESETALL}"
-sudo apt-get -qq install -y wget 1>/dev/null
+sudo apt-get -qq install python3-venv -y wget 1>/dev/null
 
 
 ################################################################################
@@ -127,6 +127,10 @@ fi
 # Rest
 ################################################################################
 title "Installing all of the python requirements"
+
+python3 -v venv main_venv
+source main_venv/bin/activate
+
 pushd eli5_retrieval_large_lm
 if [[ "$IS_ONE_VM_INSTANCE" == "True" ]] ; then
   REQUIREMENTS_PATH=requirements_1vm_alpha.txt
