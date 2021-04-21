@@ -143,16 +143,17 @@ popd
 
 title "Testing TPUs"
 pushd eli5_retrieval_large_lm
+TF_VERSION="2.6.0"
 python3 -c "
 import sys
 print('Importing Tensorflow')
 import tensorflow as tf
 print('Done importing Tensorflow')
-assert tf.__version__ == '2.5.0', tf.__version__
+assert tf.__version__ == sys.argv[3], tf.__version__
 import tf_utils
 
-if len(sys.argv):
-  assert sys.argv[1] in {'True', 'False'}, sys.argv[1]
+assert len(sys.argv) == 4, len(sys.argv)
+assert sys.argv[1] in {'True', 'False'}, sys.argv[1]
 
 print(f'PYTHON TPU TEST ARGV: {sys.argv}')
 
@@ -164,7 +165,7 @@ else:
   tf_utils.init_tpus()
 
 print('\n'.join(map(str, tf_utils.devices_to_use())))
-" "$IS_ONE_VM_INSTANCE" "$INSTANCE_NAME"
+" "$IS_ONE_VM_INSTANCE" "$INSTANCE_NAME" "$TF_VERSION"
 popd
 exit
 
