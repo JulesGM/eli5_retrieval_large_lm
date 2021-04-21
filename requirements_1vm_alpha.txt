@@ -12,6 +12,3 @@ toolz
 transformers
 tqdm
 xeus-python
-# tensor2tensor
-# tensorflow_hub
-tensorflow-text==2.5rc0
