@@ -129,8 +129,8 @@ fi
 ################################################################################
 title "Installing all of the python requirements"
 
-python3 -v venv main_venv
-source main_venv/bin/activate
+python3 -m venv venv
+source venv/bin/activate
 
 pushd eli5_retrieval_large_lm
 if [[ "$IS_ONE_VM_INSTANCE" == "True" ]] ; then
