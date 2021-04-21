@@ -128,7 +128,12 @@ fi
 ################################################################################
 title "Installing all of the python requirements"
 pushd eli5_retrieval_large_lm
-python3 -m pip install -r requirements.txt -q 1>/dev/null
+if [[ "$IS_ONE_VM_INSTANCE" == "True" ]] ; then
+  REQUIREMENTS_PATH=requirements_1vm_alpha.txt
+else:
+  REQUIREMENTS_PATH=requirements.txt
+fi
+python3 -m pip install -r "$REQUIREMENTS_PATH" -q 1>/dev/null
 popd
 
 
@@ -136,10 +141,14 @@ title "Testing TPUs"
 pushd eli5_retrieval_large_lm
 python3 -c "
 import sys
+import tensorflow as tf
+assert tf.__version__ == '2.5.0'
 import tf_utils
 
 if len(sys.argv):
   assert sys.argv[1] in {'True', 'False'}, sys.argv[1]
+
+print(f'PYTHON TPU TEST ARGV: {sys.argv}')
 
 if len(sys.argv) and sys.argv[1] == 'True':
   tf_utils.init_tpus(local=True)

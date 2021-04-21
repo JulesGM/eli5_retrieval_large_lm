@@ -49,13 +49,8 @@ import toolz
 import transformers
 import utils
 
+assert tf.__version__.strip() == "2.5.0", tf.__version__
 
-TF_VERSION_REQ = (2, 5)
-TF_OPERATOR = operator.eq
-TF_VERSION = tuple(map(int, tf.__version__.split(".")[:2]))
-utils.check_operator(
-  TF_OPERATOR, TF_VERSION, TF_VERSION_REQ
-)
 
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
