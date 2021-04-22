@@ -2,7 +2,7 @@
 set -e
 set -u
 
-source venv/bin/activate
+#source venv/bin/activate
 
 echo "Running base.sh"
 source launchers/scripts/base.sh
