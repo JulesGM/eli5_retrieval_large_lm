@@ -150,6 +150,7 @@ pushd eli5_retrieval_large_lm
 TF_VERSION="2.6.0"
 python3 -c "
 import sys
+import tensor2tensor
 print('Importing Tensorflow')
 import tensorflow as tf
 print('Done importing Tensorflow')
