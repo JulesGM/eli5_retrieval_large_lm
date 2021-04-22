@@ -109,7 +109,6 @@ if [[ ! -d eli5_retrieval_large_lm ]] ; then
   git clone https://github.com/JulesGM/eli5_retrieval_large_lm.git \
     --recurse-submodules 1>/dev/null
 
-
   title "Checkout the correct commit and verify."
   pushd eli5_retrieval_large_lm
   echo "git checkout \"$GIT_COMMIT_ID\""
