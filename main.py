@@ -500,8 +500,14 @@ def main(argv):
   # Initialization and Configuration of the Devices.
   ##############################################################################
   tpu_setup = None
-  # current_acelerator_type is always "CPU" in the beginning with TPUs
-  if tf_utils.current_accelerator_type() == "CPU":
+
+  accel = tf_utils.current_accelerator_type()
+  if FLAG_TPU_IS_LOCAL.value:
+    assert accel == "TPU", accel
+  if accel == "TPU":
+    assert FLAG_TPU_IS_LOCAL.value, FLAG_TPU_IS_LOCAL.value
+
+  if tf_utils.current_accelerator_type() in {"CPU", "TPU"}:
     tpu_setup = tf_utils.init_tpus(
       tpu_name=FLAG_TPU_NAME.value, local=FLAG_TPU_IS_LOCAL.value
     )
