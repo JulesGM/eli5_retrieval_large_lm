@@ -503,7 +503,6 @@ def main(argv):
 
   accel = tf_utils.current_accelerator_type()
   if FLAG_TPU_IS_LOCAL.value:
-    assert FLAG_TPU_NAME.value is None, FLAG_TPU_NAME.value
     assert accel == "TPU", accel
   if accel == "TPU":
     assert FLAG_TPU_IS_LOCAL.value, FLAG_TPU_IS_LOCAL.value
