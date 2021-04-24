@@ -49,7 +49,7 @@ import toolz
 import transformers
 import utils
 
-assert tf.__version__.strip() == "2.5.0", tf.__version__
+# assert tf.__version__.strip() == "2.5.0", tf.__version__
 
 
 

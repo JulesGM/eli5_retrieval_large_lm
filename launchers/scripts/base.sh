@@ -42,7 +42,7 @@ function run () {
 
   h1 "Running the script."
 
-  pytype "$SCRIPT_PATH" -P . --check-variable-types \
+  python3 -m pytype "$SCRIPT_PATH" -P . --check-variable-types \
     --check-container-types \
     --check-parameter-types --precise-return
   python3 check_flags.py "$SCRIPT_PATH"

@@ -13,7 +13,6 @@ set -u
 ################################################################################
 # Definition of constants
 ################################################################################
-
 RESETALL='\033[0m'
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -69,7 +68,7 @@ fi
 title "Installing generic dependencies"
 echo -e "${ORANGE}Warning: apt-get takes a while to become available.${RESETALL}"
 sudo apt-get -qq update
-sudo apt-get -qq install -y wget 1>/dev/null
+sudo apt-get -qq install -y wget fzf 1>/dev/null
 
 
 ################################################################################
@@ -93,8 +92,10 @@ fi
 
 
 title "Installing the basic Python dependencies"
-python3 -m pip install cloud-tpu-client -q 1>/dev/null
-
+sudo apt-get install python3.8 python3.8-dev python3.8-pip -y
+PYTHON=python3.8
+"$PYTHON" -m pip install cloud-tpu-client -q 1>/dev/null
+"$PYTHON" -m pip install twisted attrs -U -q 1>/dev/null
 
 ################################################################################
 # Git & Repo
@@ -135,11 +136,11 @@ pushd eli5_retrieval_large_lm
 if [[ "$IS_ONE_VM_INSTANCE" == "True" ]] ; then
   REQUIREMENTS_PATH=requirements_1vm_alpha.txt
   TF_REQ_ALPHA_PATH=tf_depts_alpha.txt
-  python3 -m pip install -r "$REQUIREMENTS_PATH" -q 1>/dev/null
-  python3 -m pip install -r "$TF_REQ_ALPHA_PATH" --no-deps -q 1>/dev/null
+  "$PYTHON" -m pip install -r "$REQUIREMENTS_PATH" -q 1>/dev/null
+  "$PYTHON" -m pip install -r "$TF_REQ_ALPHA_PATH" --no-deps -q 1>/dev/null
 else
   REQUIREMENTS_PATH=requirements.txt
-  python3 -m pip install -r "$REQUIREMENTS_PATH" -q 1>/dev/null
+  "$PYTHON" -m pip install -r "$REQUIREMENTS_PATH" -q 1>/dev/null
 fi
 
 popd
@@ -148,7 +149,7 @@ popd
 title "Testing TPUs"
 pushd eli5_retrieval_large_lm
 TF_VERSION="2.6.0"
-python3 -c "
+"$PYTHON" -c "
 import sys
 import tensor2tensor
 print('Importing Tensorflow')
@@ -173,6 +174,7 @@ print('\n'.join(map(str, tf_utils.devices_to_use())))
 " "$IS_ONE_VM_INSTANCE" "$INSTANCE_NAME" "$TF_VERSION"
 popd
 exit
+
 
 title "Installing gcsfuse"
 sudo apt-get update
