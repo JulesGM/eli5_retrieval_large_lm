@@ -75,9 +75,12 @@ def load_model(
     raise ValueError(f"Unsupported distribute_mode: `{distribute_mode}`")
 
   if distribute_mode == constants.DistributeModeChoices.tpustrategy:
-    strategy = tf.distribute.TPUStrategy(
-        tpu_setup.resolver,
-    )
+    if tpu_setup:
+      strategy = tf.distribute.TPUStrategy(
+          tpu_setup.resolver,
+      )
+    else:
+      strategy = tf.distribute.TPUStrategy()
   elif distribute_mode == constants.DistributeModeChoices.onedevicestrategy:
     # Test mode with a single device, possibly a CPU.
     strategy = tf.distribute.OneDeviceStrategy(tf_utils.devices_to_use()[0])
