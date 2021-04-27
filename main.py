@@ -507,11 +507,11 @@ def main(argv):
   if accel == "TPU":
     assert FLAG_TPU_IS_LOCAL.value, FLAG_TPU_IS_LOCAL.value
 
-  # if tf_utils.current_accelerator_type() in {"CPU", "TPU"}:
-  #   tpu_setup = tf_utils.init_tpus(
-  #     tpu_name=FLAG_TPU_NAME.value,
-  #     local=FLAG_TPU_IS_LOCAL.value
-  #   )
+  if tf_utils.current_accelerator_type() in {"CPU", "TPU"}:
+    tpu_setup = tf_utils.init_tpus(
+      tpu_name=FLAG_TPU_NAME.value,
+      local=FLAG_TPU_IS_LOCAL.value
+    )
 
   LOGGER.debug("Devices we are computing on:\n%s",
                utils.wrap_iterable(map(str, tf_utils.devices_to_use())))
