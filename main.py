@@ -344,7 +344,7 @@ def build_regular_training_step(
         average_loss = tf.math.reduce_mean(partial_loss)
 
       losses.append(average_loss)
-      grads = tape.gfradient(average_loss, model.trainable_variables)
+      grads = tape.gradient(average_loss, model.trainable_variables)
       optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
     return tf.math.reduce_mean(losses)
