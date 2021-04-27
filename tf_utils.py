@@ -75,7 +75,7 @@ def init_tpus(*, tpu_name=None, local=False):
   """Initializes the connection with the TPUs."""
   try:
     if local:
-      resolver = LocalTPUClusterResolver()
+      resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu="local")
     else:
       if tpu_name:
         resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu_name)
