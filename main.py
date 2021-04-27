@@ -261,7 +261,7 @@ FLAG_MAX_LENGTH_GENERATION = flags.DEFINE_integer(
 
 FLAG_SAVE_PERIOD_MIN = flags.DEFINE_integer(
     "save-period-min",
-    1,
+    10,
     "How many minutes to wait between saves."
 )
 
@@ -961,7 +961,6 @@ def main(argv):
           utils.check_operator(operator.gt, period_sec, 0)
           ratio = delta_sec / period_sec
           if ratio >= 1:
-            import pdb; pdb.set_trace()
             dur = delta_sec / 60.
             timestamp_last_ckpt_secs = time.time()
             LOGGER.debug("SAVING MODEL - CAUSE: DURATION - %0.2f min", dur)
