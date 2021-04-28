@@ -260,7 +260,7 @@ FLAG_MAX_LENGTH_GENERATION = flags.DEFINE_integer(
 
 FLAG_SAVE_PERIOD_MIN = flags.DEFINE_integer(
     "save-period-min",
-    10,
+    1,
     "How many minutes to wait between saves."
 )
 
@@ -403,7 +403,9 @@ def build_evaluation_step(
   @tf.function(**tf_function_kwargs)
   def fn(input_ids, label_ids):
     losses = []
-    for i in range(0, FLAG_BATCH_SIZE.value // FLAG_BATCH_SPLIT.value):
+    for i in range(
+        0, FLAG_BATCH_SIZE.value // FLAG_BATCH_SPLIT.value
+    ):
       start = i * FLAG_BATCH_SPLIT.value
       end = (i + 1) * FLAG_BATCH_SPLIT.value
       loss = model(
@@ -417,20 +419,27 @@ def build_evaluation_step(
   return fn
 
 
-def save_model(
-    *,
-    train_steps,
-    model_or_replicas,
-    optimizer,
-    instance_output_dir
-):
-  """Save the model and log the flags, locally, then copy over to GS."""
-  with tempfile.TemporaryDirectory() as tmp:
+class Saver:
+  def __init__(self, instance_output_dir):
+    self._tmp_dir = tempfile.TemporaryDirectory()
+    self._instance_output_dir = instance_output_dir
+
+  def save_model(
+      self,
+      *,
+      train_steps,
+      model_or_replicas,
+      optimizer,
+
+  ):
+    """Save the model and log the flags, locally, then copy over to GS."""
     save_directory = os.path.join(
-        tmp,
+        self._tmp_dir.name,
         time.strftime(f"{train_steps}_ckpt_%Y%m%d-%H%M%S")
     )
-    model_or_replicas.save_pretrained(os.path.join(save_directory, "model"))
+    model_or_replicas.save_pretrained(
+      os.path.join(save_directory, "model")
+    )
 
     command = shlex.join(
         [
@@ -438,8 +447,8 @@ def save_model(
             "-m",
             "rsync",
             "-r",
-            save_directory,
-            instance_output_dir,
+            self._tmp_dir.name,
+            self._instance_output_dir,
         ]
     )
     LOGGER.debug("Sending model. Command:\n\t- `%s`", command)
@@ -483,7 +492,9 @@ def main(argv):
   folder_name = time.strftime(
       f"{FLAG_RUN_NAME.value}_{FLAG_APPROACH_TYPE.value}_%Y%m%d-%H%M%S"
   )
-  instance_output_dir = os.path.join(FLAG_OUTPUT_DIR.value, folder_name).strip()
+  instance_output_dir = os.path.join(
+    FLAG_OUTPUT_DIR.value, folder_name
+  ).strip()
   if not instance_output_dir.endswith("/"):
     instance_output_dir += "/"
   json_target = os.path.join(instance_output_dir, "training_params.json")
@@ -664,6 +675,7 @@ def main(argv):
     # Prepare the statistics and the logging facilities.
     ############################################################################
     # Tensorboard
+    saver = Saver(instance_output_dir)
     train_log_dir = os.path.join(instance_output_dir, "tensorboard", "train")
     eval_log_dir = os.path.join(instance_output_dir, "tensorboard", "eval")
     flags_log_dir = os.path.join(instance_output_dir, "tensorboard", "params")
@@ -980,11 +992,10 @@ def main(argv):
             dur = delta_sec / 60
             timestamp_last_ckpt_secs = time.time()
             LOGGER.debug("SAVING MODEL - CAUSE: DURATION - %0.2f min", dur)
-            save_model(
+            saver.save_model(
                 train_steps=step_counters["train"],
                 model_or_replicas=model_or_replicas,
                 optimizer=optimizer,
-                instance_output_dir=instance_output_dir
             )
 
     #############################################################
