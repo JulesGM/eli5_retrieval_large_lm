@@ -384,6 +384,9 @@ class Saver:
   """
 
   def __init__(self, instance_output_dir: str):
+    utils.check_not_none(instance_output_dir)
+    utils.check_operator(operator.gt, len(instance_output_dir), 0)
+
     self._tmp_dir = tempfile.TemporaryDirectory()
     self._instance_output_dir = instance_output_dir
     self._pool = concurrent.futures.ThreadPoolExecutor(1)
@@ -401,7 +404,7 @@ class Saver:
         "-r",
         str(local_path),
         str(self._instance_output_dir) +
-        "/" if not self._instance_output_dir.endswith("/") else "",
+        ("/" if not self._instance_output_dir.endswith("/") else ""),
       ]
     )
     LOGGER.debug("Sending model. Command:\n\t- `%s`", command)
