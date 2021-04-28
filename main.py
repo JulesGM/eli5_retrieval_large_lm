@@ -397,7 +397,7 @@ class Saver:
       [
         "gsutil",
         "-m",
-        "scp",
+        "cp",
         "-r",
         str(local_path),
         str(self._instance_output_dir) +
@@ -406,7 +406,6 @@ class Saver:
     )
     LOGGER.debug("Sending model. Command:\n\t- `%s`", command)
     subprocess.Popen(command, shell=True).wait()
-
 
   def save_model(
       self,
@@ -543,11 +542,11 @@ def main(argv):
           FLAG_NUM_REPLICAS.value
       )
       utils.print_mem("after loading model", LOGGER)
-      model_or_replicas = model_specific.model
-      if isinstance(model_or_replicas, list):
-        model_or_replicas: List[transformers.TFGPT2LMHeadModel]
+      model = model_specific.model
+      if isinstance(model, list):
+        model: List[transformers.TFGPT2LMHeadModel]
       else:
-        model_or_replicas: transformers.TFGPT2LMHeadModel
+        model: transformers.TFGPT2LMHeadModel
 
       tokenizer = model_specific.tokenizer
 
@@ -583,7 +582,7 @@ def main(argv):
       if FLAG_DATASET_NAME.value == constants.DatasetNameChoices.kilt_eli5:
         return task_specific.create_lm_ds_kilt_eli5(
             tokenizer=tokenizer,
-            context_window_size=model_or_replicas.config.n_positions,
+            context_window_size=model.config.n_positions,
             dataset_name=FLAG_DATASET_NAME.value,
             # Batches are split over the replicas:
             batch_size=FLAG_BATCH_SIZE.value * actual_num_replicas,
@@ -633,14 +632,14 @@ def main(argv):
     )
 
     training_step = build_regular_training_step(
-        model_or_replicas,
+        model,
         optimizer,
         strategy=model_specific.strategy,
         tf_function_kwargs=tf_function_flags
     )
 
     evaluation_step = build_evaluation_step(
-        model_or_replicas, tf_function_flags
+        model, tf_function_flags
     )
 
     timestamp_last_ckpt_secs = time.time()
@@ -651,6 +650,10 @@ def main(argv):
     ############################################################################
     # Tensorboard
     saver = Saver(instance_output_dir)
+    # with model_specific.strategy.scope():
+    #   checkpoint = tf.train.Checkpoint(
+    #     optimizer=optimizer, model=model
+    #   )
     train_log_dir = os.path.join(instance_output_dir, "tensorboard", "train")
     eval_log_dir = os.path.join(instance_output_dir, "tensorboard", "eval")
     flags_log_dir = os.path.join(instance_output_dir, "tensorboard", "params")
@@ -966,9 +969,10 @@ def main(argv):
             dur = delta_sec / 60
             timestamp_last_ckpt_secs = time.time()
             LOGGER.debug("SAVING MODEL - CAUSE: DURATION - %0.2f min", dur)
+            # checkpoint.save(ckpt_prefix)
             saver.save_model(
                 train_steps=step_counters["train"],
-                model_or_replicas=model_or_replicas,
+                model_or_replicas=model,
                 optimizer=optimizer,
             )
 
