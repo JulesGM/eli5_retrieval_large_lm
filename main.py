@@ -16,12 +16,14 @@
 """ Training script for the retrieval solution.
 """
 
+import concurrent.futures
 import functools
 import itertools
 import json
 import logging
 import operator
 import os
+import queue
 import shlex
 import socket
 import subprocess
@@ -350,48 +352,6 @@ def build_regular_training_step(
   return training_step
 
 
-# def build_manual_data_parallel_training_step(
-#     models,
-#     optimizer,
-#     tf_function_kwargs = None
-# ):
-#   """Data parallel training step without using tf.distribute.Strategies."""
-#
-#   tf_function_kwargs = {} if tf_function_kwargs is None else tf_function_kwargs
-#   train_vars = models[0].trainable_variables
-#
-#   @tf.function(**tf_function_kwargs)
-#   def fn(input_ids, label_ids):
-#     losses = []
-#     accum_gradient = [tf.zeros_like(this_var) for this_var in train_vars]
-#
-#     # Get some gradients per model instance
-#     for i in range(0, FLAG_BATCH_SIZE.value // FLAG_BATCH_SPLIT.value):
-#       with tf.GradientTape() as tape:
-#         start = i * FLAG_BATCH_SPLIT.value
-#         end = (i + 1) * FLAG_BATCH_SPLIT.value
-#         partial_loss = models[i](
-#             input_ids[start:end],
-#             labels=label_ids[start:end],
-#             training=True,
-#             return_dict=True
-#         ).loss
-#         gradients = tape.gradient(partial_loss, models[i].trainable_variables)
-#         accum_gradient = [acum_grad + grad for acum_grad, grad
-#                           in zip(accum_gradient, gradients)]
-#       losses.append(partial_loss)
-#
-#     accum_gradient = [this_grad / len(models) for this_grad in accum_gradient]
-#     # Apply to first model
-#     optimizer.apply_gradients(
-#         zip(accum_gradient, models[0].trainable_variables)
-#         )
-#
-#     with tf.device("/job:localhost/replica:0/task:0/device:CPU:0"):
-#       return tf.math.reduce_mean(losses)
-#   return fn
-
-
 def build_evaluation_step(
     model,
     tf_function_kwargs = None,
@@ -420,42 +380,57 @@ def build_evaluation_step(
 
 
 class Saver:
-  def __init__(self, instance_output_dir):
+  """Save the model and log the flags, locally, then copy over to GS.
+  """
+
+  def __init__(self, instance_output_dir: str):
     self._tmp_dir = tempfile.TemporaryDirectory()
     self._instance_output_dir = instance_output_dir
+    self._pool = concurrent.futures.ThreadPoolExecutor(1)
+    self._futures = []
+
+  def _save_model(
+      self,
+      local_path: str,
+      ):
+    command = shlex.join(
+      [
+        "gsutil",
+        "-m",
+        "scp",
+        "-r",
+        str(local_path),
+        str(self._instance_output_dir) +
+        "/" if not self._instance_output_dir.endswith("/") else "",
+      ]
+    )
+    LOGGER.debug("Sending model. Command:\n\t- `%s`", command)
+    subprocess.Popen(command, shell=True).wait()
+
 
   def save_model(
       self,
-      *,
-      train_steps,
+      train_steps: int,
       model_or_replicas,
       optimizer,
-
   ):
-    """Save the model and log the flags, locally, then copy over to GS."""
     save_directory = os.path.join(
-        self._tmp_dir.name,
-        time.strftime(f"{train_steps}_ckpt_%Y%m%d-%H%M%S")
+      self._tmp_dir.name,
+      time.strftime(f"{train_steps}_ckpt_%Y%m%d-%H%M%S")
     )
     model_or_replicas.save_pretrained(
       os.path.join(save_directory, "model")
     )
 
-    command = shlex.join(
-        [
-            "gsutil",
-            "-m",
-            "rsync",
-            "-r",
-            self._tmp_dir.name,
-            self._instance_output_dir,
-        ]
-    )
-    LOGGER.debug("Sending model. Command:\n\t- `%s`", command)
-    subprocess.Popen(
-      command,
-      shell=True,
-    )
+    self._save_model(save_directory)
+    import pdb; pdb.set_trace()
+
+    # self._futures.append(
+    #   self._pool.submit(self._save_model, save_directory)
+    # )
+
+  def __del__(self):
+    self._pool.shutdown()
 
 
 def main(argv):
@@ -988,7 +963,6 @@ def main(argv):
           )
 
           if ratio >= 1:
-            import pdb; pdb.set_trace()
             dur = delta_sec / 60
             timestamp_last_ckpt_secs = time.time()
             LOGGER.debug("SAVING MODEL - CAUSE: DURATION - %0.2f min", dur)
@@ -998,9 +972,9 @@ def main(argv):
                 optimizer=optimizer,
             )
 
-    #############################################################
+    ############################################################################
     # Post Training Cleanup
-    #######################################################################
+    ############################################################################
     for writer in writers.values():
       writer.close()
 
