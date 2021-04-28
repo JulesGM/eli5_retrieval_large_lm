@@ -52,7 +52,6 @@ import utils
 # assert tf.__version__.strip() == "2.5.0", tf.__version__
 
 
-
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 LOGGER = logging.getLogger(__name__)
 SCRIPT_DIRECTORY = os.path.realpath(os.path.dirname(__file__))
@@ -960,8 +959,25 @@ def main(argv):
           period_sec = 60 * FLAG_SAVE_PERIOD_MIN.value
           utils.check_operator(operator.gt, period_sec, 0)
           ratio = delta_sec / period_sec
+          LOGGER.info(
+            "[%(split)s] - RATIO:                  %(ratio)s",
+            dict(
+              split=split,
+              ratio=str(ratio)
+            )
+          )
+          LOGGER.info(
+            "[%(split)s] - Target: %(target)s, Present: %(present)s",
+            dict(
+              split=split,
+              target=str(period_sec),
+              present=str(delta_sec),
+            )
+          )
+
           if ratio >= 1:
-            dur = delta_sec / 60.
+            import pdb; pdb.set_trace()
+            dur = delta_sec / 60
             timestamp_last_ckpt_secs = time.time()
             LOGGER.debug("SAVING MODEL - CAUSE: DURATION - %0.2f min", dur)
             save_model(
