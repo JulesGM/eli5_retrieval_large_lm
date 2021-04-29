@@ -987,6 +987,7 @@ def main(argv):
                 model_or_replicas=model,
                 optimizer=optimizer,
             )
+            import pdb; pdb.set_trace()
 
     ############################################################################
     # Post Training Cleanup
