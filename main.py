@@ -386,10 +386,11 @@ class Saver:
   def __init__(self, instance_output_dir: str, checkpoint: tf.train.Checkpoint):
     utils.check_not_none(instance_output_dir)
     utils.check_operator(operator.gt, len(instance_output_dir), 0)
+    instance_output_dir = str(instance_output_dir)
 
     self._instance_output_dir = (
-        str(self._instance_output_dir) +
-        ("/" if not self._instance_output_dir.endswith("/") else "")
+        instance_output_dir +
+        ("/" if not instance_output_dir.endswith("/") else "")
     )
     self._checkpoint = checkpoint
     self._checkpoint_manager = tf.train.CheckpointManager(
