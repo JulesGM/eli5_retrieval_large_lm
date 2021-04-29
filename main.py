@@ -262,7 +262,7 @@ FLAG_MAX_LENGTH_GENERATION = flags.DEFINE_integer(
 
 FLAG_SAVE_PERIOD_MIN = flags.DEFINE_integer(
     "save-period-min",
-    1,
+    20,
     "How many minutes to wait between saves."
 )
 
@@ -988,7 +988,6 @@ def main(argv):
                 model_or_replicas=model,
                 optimizer=optimizer,
             )
-            import pdb; pdb.set_trace()
 
     ############################################################################
     # Post Training Cleanup
