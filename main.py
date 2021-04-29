@@ -399,7 +399,7 @@ class Saver:
       max_to_keep=None,
     )
 
-    self._tmp_dir = tempfile.TemporaryDirectory()
+    # self._tmp_dir = tempfile.TemporaryDirectory()
     self._pool = concurrent.futures.ThreadPoolExecutor(1)
     self._futures = []
 
@@ -427,13 +427,13 @@ class Saver:
       model_or_replicas,
       optimizer,
   ):
-    save_directory = os.path.join(
-      self._tmp_dir.name,
-      time.strftime(f"{train_steps}_ckpt_%Y%m%d-%H%M%S")
-    )
-    model_or_replicas.save_pretrained(
-      os.path.join(save_directory, "model")
-    )
+    # save_directory = os.path.join(
+    #  self._tmp_dir.name,
+    #  time.strftime(f"{train_steps}_ckpt_%Y%m%d-%H%M%S")
+    # )
+    # model_or_replicas.save_pretrained(
+    #  os.path.join(save_directory, "model")
+    # )
 
     # self._save_model(save_directory)
     self._checkpoint_manager.save(checkpoint_number=tf.constant(train_steps))
