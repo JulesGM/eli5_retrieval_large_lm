@@ -383,32 +383,42 @@ class Saver:
   """Save the model and log the flags, locally, then copy over to GS.
   """
 
-  def __init__(self, instance_output_dir: str):
+  def __init__(self, instance_output_dir: str, checkpoint: tf.train.Checkpoint):
     utils.check_not_none(instance_output_dir)
     utils.check_operator(operator.gt, len(instance_output_dir), 0)
 
+    self._instance_output_dir = (
+        str(self._instance_output_dir) +
+        ("/" if not self._instance_output_dir.endswith("/") else "")
+    )
+    self._checkpoint = checkpoint
+    self._checkpoint_manager = tf.train.CheckpointManager(
+      checkpoint=checkpoint,
+      directory=self._instance_output_dir,
+      max_to_keep=None,
+    )
+
     self._tmp_dir = tempfile.TemporaryDirectory()
-    self._instance_output_dir = instance_output_dir
     self._pool = concurrent.futures.ThreadPoolExecutor(1)
     self._futures = []
 
-  def _save_model(
-      self,
-      local_path: str,
-      ):
-    command = shlex.join(
-      [
-        "gsutil",
-        "-m",
-        "cp",
-        "-r",
-        str(local_path),
-        str(self._instance_output_dir) +
-        ("/" if not self._instance_output_dir.endswith("/") else ""),
-      ]
-    )
-    LOGGER.debug("Sending model. Command:\n\t- `%s`", command)
-    subprocess.Popen(command, shell=True).wait()
+
+  # def _save_model(
+  #     self,
+  #     local_path: str,
+  #     ):
+  #   command = shlex.join(
+  #     [
+  #       "gsutil",
+  #       "-m",
+  #       "cp",
+  #       "-r",
+  #       str(local_path),
+  #       self._instance_output_dir,
+  #     ]
+  #   )
+  #   LOGGER.debug("Sending model. Command:\n\t- `%s`", command)
+  #   subprocess.Popen(command, shell=True).wait()
 
   def save_model(
       self,
@@ -424,9 +434,8 @@ class Saver:
       os.path.join(save_directory, "model")
     )
 
-    self._save_model(save_directory)
-    import pdb; pdb.set_trace()
-
+    # self._save_model(save_directory)
+    self._checkpoint_manager.save(checkpoint_number=tf.constant(train_steps))
     # self._futures.append(
     #   self._pool.submit(self._save_model, save_directory)
     # )
@@ -652,11 +661,11 @@ def main(argv):
     # Prepare the statistics and the logging facilities.
     ############################################################################
     # Tensorboard
-    saver = Saver(instance_output_dir)
-    # with model_specific.strategy.scope():
-    #   checkpoint = tf.train.Checkpoint(
-    #     optimizer=optimizer, model=model
-    #   )
+    with model_specific.strategy.scope():
+      checkpoint = tf.train.Checkpoint(
+        optimizer=optimizer, model=model
+      )
+    saver = Saver(instance_output_dir, checkpoint)
     train_log_dir = os.path.join(instance_output_dir, "tensorboard", "train")
     eval_log_dir = os.path.join(instance_output_dir, "tensorboard", "eval")
     flags_log_dir = os.path.join(instance_output_dir, "tensorboard", "params")
