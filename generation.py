@@ -30,7 +30,7 @@ import tensorflow as tf
 import tf_utils
 import tqdm
 import transformers
-from typing import *
+from typing import Dict
 import utils
 
 
@@ -126,7 +126,7 @@ _FLAG_HF_MODEL_KEY = flags.DEFINE_string(
 )
 
 
-def make_model_tf(path, mode):
+def make_model_tf(path: str, mode: str) -> tf.Tensor:
   with utils.log_duration(LOGGER, make_model_tf.__name__, "Load model."):
     if mode == constants.SaveModeChoices.hfh5:
       config_path = os.path.join(path, "config.json")
@@ -144,7 +144,9 @@ def make_model_tf(path, mode):
       )
       ckpt = tf.train.Checkpoint(model=model)
       ckpt.restore(_FLAG_CKPT_MODEL_PATH.value)
-
+    else:
+      raise RuntimeError(f"Unsupported Save Mode: {mode}")
+  return model
 
 def main(argv):
   if len(argv) > 1:
