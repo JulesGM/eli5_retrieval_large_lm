@@ -15,6 +15,7 @@
 
 """Generates the samples from the models."""
 import logging
+import operator
 import os
 import subprocess
 import tempfile
@@ -45,8 +46,13 @@ _FLAG_DB_PATH = flags.DEFINE_string(
     None,
     "Path to the dataset. Can be on Google Cloud."
 )
-_FLAG_MODEL_PATH = flags.DEFINE_string(
-    "model_path",
+_FLAG_H5_MODEL_PATH = flags.DEFINE_string(
+    "h5_model_path",
+    None,
+    "Path to the model save."
+)
+_FLAG_CKPT_MODEL_PATH = flags.DEFINE_string(
+    "ckpt_model_path",
     None,
     "Path to the model save."
 )
@@ -88,7 +94,21 @@ _FLAG_GENERATION_LENGTH_LIMIT = flags.DEFINE_integer(
     None,
     "Number of tokens to reserve for generation at the end."
 )
-
+_FLAG_IS_LOCAL_TPU = flags.DEFINE_bool(
+  "is-local-tpu",
+  True,
+  "Whether we are using a one-vm TPU.",
+)
+_FLAG_TPU_NAME = flags.DEFINE_string(
+  "tpu-name",
+  "",
+  "Name of the TPU to use."
+)
+_FLAG_HF_MODEL_KEY = flags.DEFINE_string(
+  "hf-model-key",
+  "gpt2-xl",
+  "Used when loading the model with checkpoints.",
+)
 
 def main(argv):
   if len(argv) > 1:
@@ -96,8 +116,29 @@ def main(argv):
   absl_logging.use_python_logging()
   utils.check_contained(_FLAG_APPROACH_TYPE.value, _ACCEPTABLE_APPROACHES)
   db_path = _FLAG_DB_PATH.value
-  model_path = _FLAG_MODEL_PATH.value
-  tpu_config = tf_utils.init_tpus()
+
+  utils.check_operator(
+    operator.xor,
+    bool(_FLAG_H5_MODEL_PATH.value),
+    bool(_FLAG_CKPT_MODEL_PATH.value)
+  )
+
+  if _FLAG_H5_MODEL_PATH.value:
+    model_path = _FLAG_H5_MODEL_PATH.value
+    mode = constants.SaveModeChoices.hfh5
+  elif _FLAG_CKPT_MODEL_PATH.value:
+    model_path = _FLAG_CKPT_MODEL_PATH.value
+    mode = constants.SaveModeChoices.ckpt
+  else:
+    raise RuntimeError("Logically should never happen.")
+
+  utils.check_exists(model_path)
+
+
+  if _FLAG_IS_LOCAL_TPU.value:
+    tpu_config = tf_utils.init_tpus(local=True)
+  else:
+    tpu_config = tf_utils.init_tpus(tpu_name=_FLAG_TPU_NAME.value)
   device_type = tf_utils.devices_to_use()[0].device_type
   if device_type == "TPU":
     assert isinstance(tpu_config, tf_utils.TpuConfigType)
@@ -113,9 +154,9 @@ def main(argv):
   # Load Model
   ##############################################################################
   with utils.log_duration(LOGGER, main.__name__, "All of model preparation"):
-    def make_model_tf(path):
+    def make_model_tf(path, mode):
       with utils.log_duration(LOGGER, make_model_tf.__name__, "Load model."):
-        if os.path.exists(path):
+        if mode == constants.SaveModeChoices.hfh5:
           config_path = os.path.join(path, "config.json")
           model_path = os.path.join(path, "tf_model.h5")
           utils.check_exists(config_path)
@@ -125,10 +166,9 @@ def main(argv):
               model_path,
               config=config
               )
-        else:
-          return transformers.TFGPT2LMHeadModel.from_pretrained(
-              path,
-          )
+        elif mode == constants.SaveModeChoices.ckpt:
+          ckpt = tf.train.Checkpoint()
+
 
     with strategy.scope():
       if model_path.startswith("gs://"):

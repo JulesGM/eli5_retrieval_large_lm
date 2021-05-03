@@ -116,3 +116,7 @@ class DatasetTypeChoices(utils.FlagChoices):
 class OptimizerTypes(utils.FlagChoices):
   adam = "adam"
   adafactor = "adafactor"
+
+class SaveModeChoices(utils.FlagChoices):
+  hfh5 = "hfh5"
+  ckpt = "ckpt"
