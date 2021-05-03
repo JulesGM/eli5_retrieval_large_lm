@@ -34,18 +34,16 @@ import utils
 
 
 LOGGER = logging.getLogger(__name__)
-
-
 _ACCEPTABLE_APPROACHES = frozenset([
     constants.ApproachTypeChoices.naked_lm,
     constants.ApproachTypeChoices.cached_pretok
 ])
 
-_FLAG_DB_PATH = flags.DEFINE_string(
-    "db_path",
-    None,
-    "Path to the dataset. Can be on Google Cloud."
-)
+# _FLAG_DB_PATH = flags.DEFINE_string(
+#     "db_path",
+#     None,
+#     "Path to the dataset. Can be on Google Cloud."
+# )
 _FLAG_H5_MODEL_PATH = flags.DEFINE_string(
     "h5_model_path",
     None,
@@ -67,55 +65,92 @@ _FLAG_OUTPUT_PATH = flags.DEFINE_string(
     None,
     "Where to save the generations. A json file. Can be on Google Cloud."
 )
+
+
 _FLAG_DATASET_TYPE = flags.DEFINE_enum(
     "dataset_Type",
     "tfr",
     constants.DatasetTypeChoices.choices(),
     "Whether to use the hdf5 or the tfr pipeline."
 )
+
+# Need one here
 _FLAG_TFR_PREFIX = flags.DEFINE_string(
     "tfr_prefix",
     None,
     "Glob prefix of the tfr files."
 )
+
+# 1 or 2 ?
 _FLAG_BATCH_SIZE = flags.DEFINE_integer(
     "batch_size",
     None,
     "Size of the batch PER DEVICE."
 )
+
+# ok
 _FLAG_SPLIT = flags.DEFINE_enum(
     "split",
     "test",
     {"eval", "test"},
     "Which split to generate from."
 )
+
+
 _FLAG_GENERATION_LENGTH_LIMIT = flags.DEFINE_integer(
     "generation_length_limit",
     None,
     "Number of tokens to reserve for generation at the end."
 )
+
+# No flag necessary
 _FLAG_IS_LOCAL_TPU = flags.DEFINE_bool(
   "is-local-tpu",
   True,
   "Whether we are using a one-vm TPU.",
 )
+
+# No flag necessary
 _FLAG_TPU_NAME = flags.DEFINE_string(
   "tpu-name",
   "",
   "Name of the TPU to use."
 )
+
+# No flag necessary
 _FLAG_HF_MODEL_KEY = flags.DEFINE_string(
   "hf-model-key",
   "gpt2-xl",
   "Used when loading the model with checkpoints.",
 )
 
+
+def make_model_tf(path, mode):
+  with utils.log_duration(LOGGER, make_model_tf.__name__, "Load model."):
+    if mode == constants.SaveModeChoices.hfh5:
+      config_path = os.path.join(path, "config.json")
+      model_path = os.path.join(path, "tf_model.h5")
+      utils.check_exists(config_path)
+      utils.check_exists(model_path)
+      config = transformers.GPT2Config.from_pretrained(config_path)
+      return transformers.TFGPT2LMHeadModel.from_pretrained(
+        model_path,
+        config=config
+      )
+    elif mode == constants.SaveModeChoices.ckpt:
+      model = transformers.GPT2LMHeadModel.from_pretrained(
+        _FLAG_HF_MODEL_KEY.value,
+      )
+      ckpt = tf.train.Checkpoint(model=model)
+      ckpt.restore(_FLAG_CKPT_MODEL_PATH.value)
+
+
 def main(argv):
   if len(argv) > 1:
     raise RuntimeError(argv[1:])
   absl_logging.use_python_logging()
   utils.check_contained(_FLAG_APPROACH_TYPE.value, _ACCEPTABLE_APPROACHES)
-  db_path = _FLAG_DB_PATH.value
+  # db_path = _FLAG_DB_PATH.value
 
   utils.check_operator(
     operator.xor,
@@ -133,8 +168,6 @@ def main(argv):
     raise RuntimeError("Logically should never happen.")
 
   utils.check_exists(model_path)
-
-
   if _FLAG_IS_LOCAL_TPU.value:
     tpu_config = tf_utils.init_tpus(local=True)
   else:
@@ -154,24 +187,10 @@ def main(argv):
   # Load Model
   ##############################################################################
   with utils.log_duration(LOGGER, main.__name__, "All of model preparation"):
-    def make_model_tf(path, mode):
-      with utils.log_duration(LOGGER, make_model_tf.__name__, "Load model."):
-        if mode == constants.SaveModeChoices.hfh5:
-          config_path = os.path.join(path, "config.json")
-          model_path = os.path.join(path, "tf_model.h5")
-          utils.check_exists(config_path)
-          utils.check_exists(model_path)
-          config = transformers.GPT2Config.from_pretrained(config_path)
-          return transformers.TFGPT2LMHeadModel.from_pretrained(
-              model_path,
-              config=config
-              )
-        elif mode == constants.SaveModeChoices.ckpt:
-          ckpt = tf.train.Checkpoint()
-
-
     with strategy.scope():
-      if model_path.startswith("gs://"):
+      # HF isn't able to read directly from GCS
+      if (model_path.startswith("gs://")
+          and mode == constants.SaveModeChoices.hfh5):
         with utils.log_duration(
             LOGGER,
             main.__name__,
@@ -199,26 +218,29 @@ def main(argv):
                 "Files at the temp dir(%s): %s", td, str(os.listdir(td))
             )
 
-            model = make_model_tf(td)
+            model = make_model_tf(td, mode=mode)
       else:
-        model = make_model_tf(model_path)
+        model = make_model_tf(model_path, mode=mode)
 
-      model.__call__ = tf.function(
-          model.__call__,
-          experimental_relax_shapes=True,
-          experimental_compile=True,
-      )
+      # model.__call__ = tf.function(
+      #     model.__call__,
+      #     experimental_relax_shapes=True,
+      #     experimental_compile=True,
+      # )
 
   ##############################################################################
   # Load Dataset Pipeline
   ##############################################################################
-
   utils.check_contained(_FLAG_APPROACH_TYPE.value, {
       constants.ApproachTypeChoices.naked_lm,
       constants.ApproachTypeChoices.naked_lm
   })
   devices = tf_utils.devices_to_use()
-  num_replicas = len(devices) if devices[0].device_type in {"GPU", "TPU"} else 1
+  num_replicas = (
+    len(devices) if devices[0].device_type in {"GPU", "TPU"} else 1
+  )
+  utils.check_equal(devices[0].device_type, "TPU")
+
   # Only a batch size of 1 is currently supported. We need attention masks
   utils.check_equal(_FLAG_BATCH_SIZE.value, 1)
   batch_size = _FLAG_BATCH_SIZE.value * num_replicas
@@ -237,7 +259,7 @@ def main(argv):
       context_window_size=context_window_size,
       dataset_name="kilt_eli5",
       batch_size=1,  # >> We set our own batch size elsewhere
-      db_path=db_path,
+      db_path=None, # None,
       random_seed=random_seed,
       use_subset=False,
       subset_size=-1,
