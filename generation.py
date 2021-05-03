@@ -30,6 +30,7 @@ import tensorflow as tf
 import tf_utils
 import tqdm
 import transformers
+from typing import *
 import utils
 
 
@@ -228,6 +229,8 @@ def main(argv):
       #     experimental_compile=True,
       # )
 
+  utils.check_not_none(model)
+
   ##############################################################################
   # Load Dataset Pipeline
   ##############################################################################
@@ -278,7 +281,7 @@ def main(argv):
       max_length_generation=_FLAG_GENERATION_LENGTH_LIMIT.value
   )
 
-  def further_prep_generate_not_test(batch):
+  def further_prep_generate_not_test(batch: Dict[str, tf.Tensor]) -> tf.Tensor:
     batch = tf.boolean_mask(
         batch["input_ids"],
         tf.logical_and(batch["label_ids"] == -100,
@@ -288,7 +291,7 @@ def main(argv):
     return batch
 
   @tf.function
-  def further_prep_generate_test(batch):
+  def further_prep_generate_test(batch: Dict[str, tf.Tensor]) -> tf.Tensor:
     batch = tf.boolean_mask(
         batch["input_ids"], batch["input_ids"] != tokenizer.eos_token_id
     )
