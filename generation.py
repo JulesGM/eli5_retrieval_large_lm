@@ -225,12 +225,11 @@ def main(argv):
       else:
         model = make_model_tf(model_path, mode=mode)
 
-      # model.__call__ = tf.function(
-      #     model.__call__,
-      #     experimental_relax_shapes=True,
-      #     experimental_compile=True,
-      # )
-
+  model.__call__ = tf.function(
+      model.__call__,
+      experimental_relax_shapes=True,
+      experimental_compile=True,
+  )
   utils.check_not_none(model)
 
   ##############################################################################
