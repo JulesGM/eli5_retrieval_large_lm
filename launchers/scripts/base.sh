@@ -26,7 +26,7 @@ function run () {
 
   local SCRIPT_PATH="$1"
   local CONFIG_PATH="$2"
-  local OTHER_FLAGS=( "${@:2}" )
+  local OTHER_FLAGS=( "${@:3}" )
   local FLAGS
   IFS=" " read -r -a FLAGS <<< "$(python3 json_to_args.py "$CONFIG_PATH")"
 
