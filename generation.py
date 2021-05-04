@@ -69,7 +69,7 @@ _FLAG_OUTPUT_PATH = flags.DEFINE_string(
 
 
 _FLAG_DATASET_TYPE = flags.DEFINE_enum(
-    "dataset_Type",
+    "dataset_type",
     "tfr",
     constants.DatasetTypeChoices.choices(),
     "Whether to use the hdf5 or the tfr pipeline."
@@ -106,7 +106,7 @@ _FLAG_GENERATION_LENGTH_LIMIT = flags.DEFINE_integer(
 
 # No flag necessary
 _FLAG_IS_LOCAL_TPU = flags.DEFINE_bool(
-  "is-local-tpu",
+  "tpu-is-local",
   True,
   "Whether we are using a one-vm TPU.",
 )
