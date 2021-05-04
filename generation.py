@@ -20,17 +20,18 @@ import os
 import subprocess
 import tempfile
 import time
+from typing import Dict
 
 import absl.app as app
 import absl.flags as flags
 import absl.logging as absl_logging
-import constants
-import task_specific
 import tensorflow as tf
-import tf_utils
 import tqdm
 import transformers
-from typing import Dict
+
+import constants
+import task_specific
+import tf_utils
 import utils
 
 
@@ -139,7 +140,7 @@ def make_model_tf(path: str, mode: str) -> tf.Tensor:
         config=config
       )
     elif mode == constants.SaveModeChoices.ckpt:
-      model = transformers.GPT2LMHeadModel.from_pretrained(
+      model = transformers.TFGPT2LMHeadModel.from_pretrained(
         _FLAG_HF_MODEL_KEY.value,
       )
       ckpt = tf.train.Checkpoint(model=model)
