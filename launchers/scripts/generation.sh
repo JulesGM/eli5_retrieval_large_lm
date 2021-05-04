@@ -16,4 +16,4 @@ LOG_PATH="$LOG_DIR/$(TZ=":America/New_York" date +"%Y-%m-%d_%T")"
 mkdir -p "$LOG_DIR" || true
 
 echo "Writing logs to '$LOG_PATH'."
-run "$SCRIPT_PATH" "$CONFIG_PATH" 2>&1 | tee "$LOG_PATH"
+run "$SCRIPT_PATH" "$CONFIG_PATH" "$@" 2>&1 | tee "$LOG_PATH"

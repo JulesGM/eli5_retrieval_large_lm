@@ -26,6 +26,7 @@ function run () {
 
   local SCRIPT_PATH="$1"
   local CONFIG_PATH="$2"
+  local OTHER_FLAGS=( "${@:2}" )
   local FLAGS
   IFS=" " read -r -a FLAGS <<< "$(python3 json_to_args.py "$CONFIG_PATH")"
 
@@ -40,6 +41,16 @@ function run () {
   fi
   echo ""
 
+
+  h2 "Extra flags provided manually:"
+  for FLAG in "${OTHER_FLAGS[@]}" ; do
+    echo " - \"$FLAG\""
+  done
+  if [[ "${#OTHER_FLAGS[@]}" == 0 ]] ; then
+    echo " [No extra flags were provided]"
+  fi
+  echo ""
+
   h1 "Running the script."
 
   python3 -m pytype "$SCRIPT_PATH" -P . --check-variable-types \
@@ -47,5 +58,5 @@ function run () {
     --check-parameter-types --precise-return
   python3 check_flags.py "$SCRIPT_PATH"
   # python3 -um pdb -c continue "$SCRIPT_PATH" "${FLAGS[@]}"
-  python3 "$SCRIPT_PATH" "${FLAGS[@]}"
+  python3 "$SCRIPT_PATH" "${FLAGS[@]}" "${OTHER_FLAGS[@]}"
 }

@@ -46,12 +46,12 @@ _ACCEPTABLE_APPROACHES = frozenset([
 #     "Path to the dataset. Can be on Google Cloud."
 # )
 _FLAG_H5_MODEL_PATH = flags.DEFINE_string(
-    "h5_model_path",
+    "h5_path",
     None,
     "Path to the model save."
 )
 _FLAG_CKPT_MODEL_PATH = flags.DEFINE_string(
-    "ckpt_model_path",
+    "ckpt_path",
     None,
     "Path to the model save."
 )
