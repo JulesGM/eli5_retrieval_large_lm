@@ -68,7 +68,6 @@ _FLAG_OUTPUT_PATH = flags.DEFINE_string(
     "Where to save the generations. A json file. Can be on Google Cloud."
 )
 
-
 _FLAG_DATASET_TYPE = flags.DEFINE_enum(
     "dataset_type",
     "tfr",
@@ -239,7 +238,7 @@ def main(argv):
   ##############################################################################
   utils.check_contained(_FLAG_APPROACH_TYPE.value, {
       constants.ApproachTypeChoices.naked_lm,
-      constants.ApproachTypeChoices.naked_lm
+      constants.ApproachTypeChoices.cached_pretok
   })
   devices = tf_utils.devices_to_use()
   num_replicas = (
