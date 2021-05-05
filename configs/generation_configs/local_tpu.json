@@ -6,6 +6,7 @@
   "generation_length_limit": 350,
   "hf-model-key": "gpt2-xl",
   "tpu-is-local": true,
+  "ckpt_path": "gs://julesgm-research-v3/eli5_retrieval_large_lm/output_dir/gpt2_eli5_kilt_cached_pretok_20210430-010236/ckpt-1431464.index",
 
   "approach_type": "cached_pretok"
 }
