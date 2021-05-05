@@ -230,6 +230,7 @@ def main(argv):
       experimental_relax_shapes=True,
       experimental_compile=True,
   )
+
   utils.check_not_none(model)
 
   ##############################################################################
@@ -347,13 +348,15 @@ def main(argv):
 
   utils.to_json_file(
       os.path.join(
-          _FLAG_OUTPUT_PATH.value, _FLAG_SPLIT.value, _FLAG_APPROACH_TYPE.value,
-          time.strftime("%Y%m%d-%H%M%S.json")
+        _FLAG_OUTPUT_PATH.value,
+        _FLAG_SPLIT.value,
+        _FLAG_APPROACH_TYPE.value,
+        time.strftime("%Y%m%d-%H%M%S.json")
       ),
       dict(
           flags={
-              flag.name: flag.value
-              for flag in flags.FLAGS.flags_by_module_dict()[argv[0]]
+            flag.name: flag.value
+            for flag in flags.FLAGS.flags_by_module_dict()[argv[0]]
           },
           generations=generations
       )

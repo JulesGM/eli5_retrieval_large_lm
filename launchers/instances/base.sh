@@ -56,5 +56,5 @@ function run () {
     --check-container-types \
     --check-parameter-types --precise-return
   python check_flags.py launchers/launch-instance.py
-  python launchers/launch-instance.py "${FLAGS[@]}" "${OTHER_FLAGS[@]}"
+  python3 -m pdb launchers/launch-instance.py "${FLAGS[@]}" "${OTHER_FLAGS[@]}"
 }
