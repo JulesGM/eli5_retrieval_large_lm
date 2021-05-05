@@ -228,13 +228,13 @@ def main(argv):
   model.__call__ = tf.function(
       model.__call__,
       experimental_relax_shapes=True,
-      experimental_compile=True,
+      # experimental_compile=True,
   )
 
   model.generate = tf.function(
       model.generate,
       experimental_relax_shapes=True,
-      experimental_compile=True,
+      # experimental_compile=True,
   )
 
   utils.check_not_none(model)
