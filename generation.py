@@ -148,6 +148,7 @@ def make_model_tf(path: str, mode: str) -> tf.Tensor:
       raise RuntimeError(f"Unsupported Save Mode: {mode}")
   return model
 
+
 def main(argv):
   if len(argv) > 1:
     raise RuntimeError(argv[1:])
@@ -171,13 +172,17 @@ def main(argv):
     raise RuntimeError("Logically should never happen.")
 
   utils.check_exists(model_path)
-  if _FLAG_IS_LOCAL_TPU.value:
-    tpu_config = tf_utils.init_tpus(local=True)
-  else:
-    tpu_config = tf_utils.init_tpus(tpu_name=_FLAG_TPU_NAME.value)
   device_type = tf_utils.devices_to_use()[0].device_type
+  
+  # ONLY GPU IS SUPPORTED
+  utils.check_equal(device_type, "GPU")
+
   if device_type == "TPU":
-    assert isinstance(tpu_config, tf_utils.TpuConfigType)
+    # ONLY LOCAL TPU IS "SUPPORTED"
+    utils.check_isinstance(_FLAG_IS_LOCAL_TPU.value, bool)
+    assert _FLAG_IS_LOCAL_TPU.value
+    tpu_config = tf_utils.init_tpus(local=True)
+    utils.check_isinstance(tpu_config, tf_utils.TpuConfigType)
     strategy = tf.distribute.TPUStrategy(tpu_config.resolver)
   elif device_type == "GPU" or "CPU":
     # MirroredStrategy automatically becomes OneDeviceStrategy if there is
@@ -185,6 +190,9 @@ def main(argv):
     strategy = tf.distribute.MirroredStrategy()
   else:
     raise RuntimeError()
+
+  # ONLY GPU IS SUPPORTED
+  utils.check_isinstance(strategy, tf.distribute.MirroredStrategy)
 
   ##############################################################################
   # Load Model
@@ -250,7 +258,7 @@ def main(argv):
   num_replicas = (
     len(devices) if devices[0].device_type in {"GPU", "TPU"} else 1
   )
-  utils.check_equal(devices[0].device_type, "TPU")
+  utils.check_equal(devices[0].device_type, "GPU")
 
   # Only a batch size of 1 is currently supported. We need attention masks
   utils.check_equal(_FLAG_BATCH_SIZE.value, 1)
