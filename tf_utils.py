@@ -71,7 +71,7 @@ class LocalTPUClusterResolver(
     return {"TPU": 8}
 
 
-def init_tpus(*, tpu_name=None, local=False):
+def init_tpus(*, tpu_name=None, local=False) -> Optional[TpuConfigType]:
   """Initializes the connection with the TPUs."""
   try:
     if local:
