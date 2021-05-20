@@ -183,7 +183,7 @@ def main(argv):
     assert _FLAG_IS_LOCAL_TPU.value
     tpu_config = tf_utils.init_tpus(local=True)
     utils.check_isinstance(tpu_config, tf_utils.TpuConfigType)
-    tpu_config: tf_utils.TpuConfigType
+    utils.check_not_none(tpu_config)
     strategy = tf.distribute.TPUStrategy(tpu_config.resolver)
   elif device_type == "GPU" or "CPU":
     # MirroredStrategy automatically becomes OneDeviceStrategy if there is
