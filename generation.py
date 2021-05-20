@@ -193,6 +193,7 @@ def main(argv):
     raise RuntimeError()
 
   # ONLY GPU IS SUPPORTED
+  print(tf.config.list_logical_devices())
   utils.check_isinstance(strategy, tf.distribute.MirroredStrategy)
 
   ##############################################################################
