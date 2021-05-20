@@ -197,41 +197,42 @@ def main(argv):
   ##############################################################################
   # Load Model
   ##############################################################################
+
   with utils.log_duration(LOGGER, main.__name__, "All of model preparation"):
     with strategy.scope():
       # HF isn't able to read directly from GCS
-      if (model_path.startswith("gs://")
-          and mode == constants.SaveModeChoices.hfh5):
-        with utils.log_duration(
-            LOGGER,
-            main.__name__,
-            "Download model from GS"
-        ):
-          with tempfile.TemporaryDirectory() as td:
-            td += os.path.sep
-
-            if os.path.exists("/root/google-cloud-sdk/bin/gsutil"):
-              exec_ = "/root/google-cloud-sdk/bin/gsutil"
-            else:
-              exec_ = "gsutil"
-
-            command = [
-                exec_,
-                "-m",
-                "cp",
-                "-r",
-                os.path.join(model_path, "*"),
-                td,
-            ]
-            LOGGER.debug("Running bash command: %s", " ".join(command))
-            subprocess.check_call(command)
-            LOGGER.debug(
-                "Files at the temp dir(%s): %s", td, str(os.listdir(td))
-            )
-
-            model = make_model_tf(td, mode=mode)
-      else:
-        model = make_model_tf(model_path, mode=mode)
+      # if (model_path.startswith("gs://")
+      #     and mode == constants.SaveModeChoices.hfh5):
+      #   with utils.log_duration(
+      #       LOGGER,
+      #       main.__name__,
+      #       "Download model from GS"
+      #   ):
+      #     with tempfile.TemporaryDirectory() as td:
+      #       td += os.path.sep
+      #
+      #       if os.path.exists("/root/google-cloud-sdk/bin/gsutil"):
+      #         exec_ = "/root/google-cloud-sdk/bin/gsutil"
+      #       else:
+      #         exec_ = "gsutil"
+      #
+      #       command = [
+      #           exec_,
+      #           "-m",
+      #           "cp",
+      #           "-r",
+      #           os.path.join(model_path, "*"),
+      #           td,
+      #       ]
+      #       LOGGER.debug("Running bash command: %s", " ".join(command))
+      #       subprocess.check_call(command)
+      #       LOGGER.debug(
+      #           "Files at the temp dir(%s): %s", td, str(os.listdir(td))
+      #       )
+      #
+      #       model = make_model_tf(td, mode=mode)
+      # else:
+      model = make_model_tf(model_path, mode=mode)
 
   model.__call__ = tf.function(
       model.__call__,
