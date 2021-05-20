@@ -9,7 +9,6 @@ source launchers/scripts/base.sh
 echo "Done running bash.sh"
 
 SCRIPT_PATH="generation.py"
-# CONFIG_PATH="configs/generation_configs/local_tpu.json"
 CONFIG_PATH="configs/generation_configs/compute_canada.json"
 
 LOG_DIR="$HOME/BUCKET-julesgm-research-v3/generation_run_log/"
