@@ -1,0 +1,11 @@
+{
+  "tfr_prefix": "/scratch/julesgm/20210225-191356/",
+  "output_path": "/home/mila/g/gagnonju/output/generations",
+  "logger_levels": "__main__:DEBUG,eli5_retrieval_large_lm.bert_utils:DEBUG,eli5_retrieval_large_lm.retrievers:DEBUG,eli5_retrieval_large_lm.scann_utils:DEBUG,eli5_retrieval_large_lm.task_specific:DEBUG,eli5_retrieval_large_lm.utils:DEBUG,tf_utils:DEBUG",
+  "batch_size": 1,
+  "generation_length_limit": 350,
+  "hf-model-key": "gpt2-xl",
+  "tpu-is-local": true,
+  "ckpt_path": "/home/mila/g/gagnonju/ckpt-1431464.index",
+  "approach_type": "cached_pretok"
+}
