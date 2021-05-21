@@ -12,6 +12,6 @@ tensorflow>=2.5
 tensor2tensor
 tensorflow_hub
 toolz
-tensorflow_text
+tensorflow_text==2.5.0-rc0
 transformers
 tqdm
