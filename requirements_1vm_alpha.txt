@@ -11,4 +11,3 @@ rich
 toolz
 transformers
 tqdm
-xeus-python
