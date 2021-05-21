@@ -8,11 +8,10 @@ numpy
 psutil
 pytype
 rich
-tensorflow>=2.4
+tensorflow>=2.5
 tensor2tensor
 tensorflow_hub
 toolz
 tensorflow_text
 transformers
 tqdm
-xeus-python
