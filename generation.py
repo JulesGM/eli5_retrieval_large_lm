@@ -25,9 +25,11 @@ from typing import Dict
 import absl.app as app
 import absl.flags as flags
 import absl.logging as absl_logging
+import colored_traceback.auto
 import tensorflow as tf
 import tqdm
 import transformers
+
 
 import constants
 import task_specific
