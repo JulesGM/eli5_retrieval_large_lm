@@ -24,6 +24,7 @@ import tensorflow as tf
 from tensorflow.python.distribute import values
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops
+from tensorflow.python.ops.ragged import ragged_tensor
 from tensorflow.python.tpu import topology
 import utils
 
@@ -31,12 +32,12 @@ LOGGER = logging.getLogger(__name__)
 
 
 TfTensorTypeTuple = (
-  ops.EagerTensor, ops.ragged.ragged_tensor.RaggedTensor, tf.Tensor
+  ops.EagerTensor, ragged_tensor.RaggedTensor, tf.Tensor
 )
 
 
 TFTensorType = Union[
-  ops.EagerTensor, ops.ragged.ragged_tensor.RaggedTensor, tf.Tensor
+  ops.EagerTensor, ragged_tensor.RaggedTensor, tf.Tensor
 ]
 
 
