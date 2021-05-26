@@ -30,11 +30,18 @@ import utils
 LOGGER = logging.getLogger(__name__)
 
 
-TFTensorType = Union[ops.EagerTensor, tf.Tensor]
+TfTensorTypeTuple = (
+  ops.EagerTensor, ops.ragged.ragged_tensor.RaggedTensor, tf.Tensor
+)
+
+
+TFTensorType = Union[
+  ops.EagerTensor, ops.ragged.ragged_tensor.RaggedTensor, tf.Tensor
+]
 
 
 def check_tf_tensor(obj):
-  utils.check_isinstance(obj, (ops.EagerTensor, tf.Tensor))
+  utils.check_isinstance(obj, TfTensorTypeTuple)
 
 
 @dataclasses.dataclass
