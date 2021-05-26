@@ -30,6 +30,13 @@ import utils
 LOGGER = logging.getLogger(__name__)
 
 
+TFTensorType = Union[ops.EagerTensor, tf.Tensor]
+
+
+def check_tf_tensor(obj):
+  utils.check_isinstance(obj, (ops.EagerTensor, tf.Tensor))
+
+
 @dataclasses.dataclass
 class TpuConfigType:
   resolver: tf.distribute.cluster_resolver.TPUClusterResolver

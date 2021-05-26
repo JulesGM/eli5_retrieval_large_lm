@@ -507,11 +507,16 @@ def _make_maybe_retrieve_and_merge_fn(
 
 # @tf.function
 def _tokenize_and_concat_while_loop(
-    all_retrieved_tokens,
-    indices,
-    num_retrieved,
-    batch_size,
+    all_retrieved_tokens: tf_utils.TFTensorType,
+    indices: tf_utils.TFTensorType,
+    num_retrieved: tf_utils.TFTensorType,
+    batch_size: tf_utils.TFTensorType,
 ):
+  tf_utils.check_tf_tensor(all_retrieved_tokens)
+  tf_utils.check_tf_tensor(indices)
+  tf_utils.check_tf_tensor(num_retrieved)
+  tf_utils.check_tf_tensor(batch_size)
+
   """Tokenizes and puts together the retrievals, per batch unit."""
   def condition(
       index,
@@ -550,9 +555,9 @@ def _tokenize_and_concat_while_loop(
 def _prepare_samples_w_retrieval(
     split,
     batch_size,
-    question_ids_inputs,
-    answer_ids_inputs,
-    gpt2_tokenized_retrieved,
+    question_ids_inputs: tf_utils.TFTensorType,
+    answer_ids_inputs: tf_utils.TFTensorType,
+    gpt2_tokenized_retrieved: tf_utils.TFTensorType,
     distances,
     num_retrievals,
     temperature,
