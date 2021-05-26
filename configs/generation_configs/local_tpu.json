@@ -3,7 +3,7 @@
   "output_path": "gs://research-brain-retrieval-during-gen-xgcp/generations/",
   "logger_levels": "__main__:DEBUG,eli5_retrieval_large_lm.bert_utils:DEBUG,eli5_retrieval_large_lm.retrievers:DEBUG,eli5_retrieval_large_lm.scann_utils:DEBUG,eli5_retrieval_large_lm.task_specific:DEBUG,eli5_retrieval_large_lm.utils:DEBUG,tf_utils:DEBUG",
   "batch_size": 1,
-  "generation_length_limit": 350,
+  "generation_length_limit": 1024,
   "hf-model-key": "gpt2-xl",
   "tpu-is-local": true,
   "ckpt_path": "gs://julesgm-research-v3/eli5_retrieval_large_lm/output_dir/gpt2_eli5_kilt_cached_pretok_20210430-010236/ckpt-1431464.index",
