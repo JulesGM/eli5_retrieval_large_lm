@@ -40,8 +40,8 @@ import utils
 
 LOGGER = logging.getLogger(__name__)
 _ACCEPTABLE_APPROACHES = frozenset([
-    constants.ApproachTypeChoices.naked_lm,
-    constants.ApproachTypeChoices.cached_pretok
+  constants.ApproachTypeChoices.naked_lm,
+  constants.ApproachTypeChoices.cached_pretok
 ])
 
 # _FLAG_DB_PATH = flags.DEFINE_string(
@@ -50,61 +50,61 @@ _ACCEPTABLE_APPROACHES = frozenset([
 #     "Path to the dataset. Can be on Google Cloud."
 # )
 _FLAG_H5_MODEL_PATH = flags.DEFINE_string(
-    "h5_path",
-    None,
-    "Path to the model save."
+  "h5_path",
+  None,
+  "Path to the model save."
 )
 _FLAG_CKPT_MODEL_PATH = flags.DEFINE_string(
-    "ckpt_path",
-    None,
-    "Path to the model save."
+  "ckpt_path",
+  None,
+  "Path to the model save."
 )
 _FLAG_APPROACH_TYPE = flags.DEFINE_enum(
-    "approach_type",
-    None,
-    _ACCEPTABLE_APPROACHES,
-    "Path to the model save."
+  "approach_type",
+  None,
+  _ACCEPTABLE_APPROACHES,
+  "Path to the model save."
 )
 _FLAG_OUTPUT_PATH = flags.DEFINE_string(
-    "output_path",
-    None,
-    "Where to save the generations. A json file. Can be on Google Cloud."
+  "output_path",
+  None,
+  "Where to save the generations. A json file. Can be on Google Cloud."
 )
 
 _FLAG_DATASET_TYPE = flags.DEFINE_enum(
-    "dataset_type",
-    "tfr",
-    constants.DatasetTypeChoices.choices(),
-    "Whether to use the hdf5 or the tfr pipeline."
+  "dataset_type",
+  "tfr",
+  constants.DatasetTypeChoices.choices(),
+  "Whether to use the hdf5 or the tfr pipeline."
 )
 
 # Need one here
 _FLAG_TFR_PREFIX = flags.DEFINE_string(
-    "tfr_prefix",
-    None,
-    "Glob prefix of the tfr files."
+  "tfr_prefix",
+  None,
+  "Glob prefix of the tfr files."
 )
 
 # 1 or 2 ?
 _FLAG_BATCH_SIZE = flags.DEFINE_integer(
-    "batch_size",
-    None,
-    "Size of the batch PER DEVICE."
+  "batch_size",
+  None,
+  "Size of the batch PER DEVICE."
 )
 
 # ok
 _FLAG_SPLIT = flags.DEFINE_enum(
-    "split",
-    "test",
-    {"eval", "test"},
-    "Which split to generate from."
+  "split",
+  "test",
+  {"eval", "test"},
+  "Which split to generate from."
 )
 
 
 _FLAG_GENERATION_LENGTH_LIMIT = flags.DEFINE_integer(
-    "generation_length_limit",
-    None,
-    "Number of tokens to reserve for generation at the end."
+  "generation_length_limit",
+  None,
+  "Number of tokens to reserve for generation at the end."
 )
 
 # No flag necessary
@@ -130,27 +130,27 @@ _FLAG_HF_MODEL_KEY = flags.DEFINE_string(
 
 
 def make_further_prep_generate_not_test(eos_token_id):
-    def further_prep_generate_not_test(
-            batch: Dict[str, tf.Tensor]
-        ) -> tf.Tensor:
-        batch = tf.boolean_mask(
-            batch["input_ids"],
-            tf.logical_and(batch["label_ids"] == -100,
-                           batch["input_ids"] != eos_token_id
-                           )
-        )
-        return batch
-    return further_prep_generate_not_test
+  def further_prep_generate_not_test(
+      batch: Dict[str, tf.Tensor]
+  ) -> tf.Tensor:
+    batch = tf.boolean_mask(
+      batch["input_ids"],
+      tf.logical_and(batch["label_ids"] == -100,
+                     batch["input_ids"] != eos_token_id
+                     )
+    )
+    return batch
+  return further_prep_generate_not_test
 
 
 def make_further_prep_generate_test(eos_token_id):
-    @tf.function
-    def further_prep_generate_test(batch: Dict[str, tf.Tensor]) -> tf.Tensor:
-        batch = tf.boolean_mask(
-            batch["input_ids"], batch["input_ids"] != eos_token_id
-        )
-        return batch
-    return further_prep_generate_test
+  @tf.function
+  def further_prep_generate_test(batch: Dict[str, tf.Tensor]) -> tf.Tensor:
+    batch = tf.boolean_mask(
+      batch["input_ids"], batch["input_ids"] != eos_token_id
+    )
+    return batch
+  return further_prep_generate_test
 
 
 def make_model_tf(path: str, mode: str) -> tf.Tensor:
@@ -177,21 +177,20 @@ def make_model_tf(path: str, mode: str) -> tf.Tensor:
 
 
 def print_sample(sample):
+  titles = ["Question:", "Answer:", "Context:"]
 
-    titles = ["Question:", "Answer:", "Context:"]
+  # Monokai
+  title_color = "#6c99bb"
+  normal_color = "#d6d6d6"
+  background_color = "#2e2e2e"
 
-    # Monokai
-    title_color = "#6c99bb"
-    normal_color = "#d6d6d6"
-    background_color = "#2e2e2e"
+  sample = f"[{normal_color} on {background_color}]" + sample + "[/]"
+  for title in titles:
+    sample = sample.replace(
+      title, f"[{title_color}]{title}[/]"
+    )
 
-    sample = f"[{normal_color} on {background_color}]" + sample + "[/]"
-    for title in titles:
-        sample = sample.replace(
-            title, f"[{title_color}]{title}[/]"
-        )
-
-    rich.print(sample)
+  rich.print(sample)
 
 
 def main(argv):
@@ -201,6 +200,8 @@ def main(argv):
   utils.check_contained(_FLAG_APPROACH_TYPE.value, _ACCEPTABLE_APPROACHES)
   # db_path = _FLAG_DB_PATH.value
 
+  rich.print("[red] This is a test![/]")
+  return
   utils.check_operator(
     operator.xor,
     bool(_FLAG_H5_MODEL_PATH.value),
@@ -218,7 +219,7 @@ def main(argv):
 
   utils.check_exists(model_path)
   device_type = tf_utils.devices_to_use()[0].device_type
-  
+
   # ONLY GPU IS SUPPORTED
   utils.check_equal(device_type, "GPU")
 
@@ -263,17 +264,17 @@ def main(argv):
               exec_ = "gsutil"
 
             command = [
-                exec_,
-                "-m",
-                "cp",
-                "-r",
-                os.path.join(model_path, "*"),
-                td,
+              exec_,
+              "-m",
+              "cp",
+              "-r",
+              os.path.join(model_path, "*"),
+              td,
             ]
             LOGGER.debug("Running bash command: %s", " ".join(command))
             subprocess.check_call(command)
             LOGGER.debug(
-                "Files at the temp dir(%s): %s", td, str(os.listdir(td))
+              "Files at the temp dir(%s): %s", td, str(os.listdir(td))
             )
 
             model = make_model_tf(td, mode=mode)
@@ -298,8 +299,8 @@ def main(argv):
   # Load Dataset Pipeline
   ##############################################################################
   utils.check_contained(_FLAG_APPROACH_TYPE.value, {
-      constants.ApproachTypeChoices.naked_lm,
-      constants.ApproachTypeChoices.cached_pretok
+    constants.ApproachTypeChoices.naked_lm,
+    constants.ApproachTypeChoices.cached_pretok
   })
   devices = tf_utils.devices_to_use()
   num_replicas = (
@@ -315,27 +316,27 @@ def main(argv):
   logging.debug("Loading dataset.")
   tokenizer = transformers.GPT2TokenizerFast.from_pretrained("gpt2-xl")
   ds = task_specific.create_lm_ds_kilt_eli5(
-      tokenizer=tokenizer,
-      context_window_size=1024,
-      dataset_name="kilt_eli5",
-      batch_size=1,  # >> We set our own batch size elsewhere
-      db_path=None, # None,
-      random_seed=0,
-      use_subset=False,
-      subset_size=-1,
-      use_helper_words=True,
-      approach_type=approach_type,
-      num_retrievals=5,  # Will never change
-      retrieval_temperature=1.,
-      retriever=None,  # Cached retrievals don't need a retriever
-      repeat=False,  # Will never change
-      split=_FLAG_SPLIT.value,
-      enable_debug_checks=False,
-      retrieval_bank_size=5,  # Will never change
-      dataset_type=_FLAG_DATASET_TYPE.value,
-      tfr_prefix=_FLAG_TFR_PREFIX.value,
-      qty_shuffle=1,  # Will never change
-      max_length_generation=_FLAG_GENERATION_LENGTH_LIMIT.value
+    tokenizer=tokenizer,
+    context_window_size=1024,
+    dataset_name="kilt_eli5",
+    batch_size=1,  # >> We set our own batch size elsewhere
+    db_path=None, # None,
+    random_seed=0,
+    use_subset=False,
+    subset_size=-1,
+    use_helper_words=True,
+    approach_type=approach_type,
+    num_retrievals=5,  # Will never change
+    retrieval_temperature=1.,
+    retriever=None,  # Cached retrievals don't need a retriever
+    repeat=False,  # Will never change
+    split=_FLAG_SPLIT.value,
+    enable_debug_checks=False,
+    retrieval_bank_size=5,  # Will never change
+    dataset_type=_FLAG_DATASET_TYPE.value,
+    tfr_prefix=_FLAG_TFR_PREFIX.value,
+    qty_shuffle=1,  # Will never change
+    max_length_generation=_FLAG_GENERATION_LENGTH_LIMIT.value
   )
 
   if _FLAG_SPLIT.value == constants.SplitChoices.test:
@@ -344,7 +345,7 @@ def main(argv):
     ds = ds.map(make_further_prep_generate_not_test(tokenizer.eos_token_id))
 
   ds = ds.padded_batch(
-      batch_size=batch_size, padding_values=tokenizer.eos_token_id
+    batch_size=batch_size, padding_values=tokenizer.eos_token_id
   )
   ds = strategy.experimental_distribute_dataset(ds)
 
@@ -354,7 +355,7 @@ def main(argv):
   LOGGER.debug("Generating.")
   generations = []
   num_entries_in_split = (
-      task_specific.DATASET_CARDINALITIES["kilt_eli5"][_FLAG_SPLIT.value]
+    task_specific.DATASET_CARDINALITIES["kilt_eli5"][_FLAG_SPLIT.value]
   )
 
   entries_counter = tqdm.tqdm(total=num_entries_in_split)
@@ -363,18 +364,18 @@ def main(argv):
     # hyperparameters for generation, or make a facility in the one we already
     # have. I feel like a separate one would be better, separating concerns.
     output = strategy.run(model.generate, kwargs=dict(
-        input_ids=batch,
-        max_length=_FLAG_GENERATION_LENGTH_LIMIT.value,
-        use_cache=True,
-        attention_mask=tf.cast(batch == tokenizer.eos_token_id, tf.int32),
+      input_ids=batch,
+      max_length=_FLAG_GENERATION_LENGTH_LIMIT.value,
+      use_cache=True,
+      attention_mask=tf.cast(batch == tokenizer.eos_token_id, tf.int32),
     ))
 
     LOGGER.debug("INPUT: %s", tokenizer.decode(batch[0]))
     output = tf_utils.process_strat_output(
-        strategy_outputs=output,
-        current_batch_size=batch_size,
-        strategy=strategy,
-        name="generations"
+      strategy_outputs=output,
+      current_batch_size=batch_size,
+      strategy=strategy,
+      name="generations"
     )
 
     with utils.log_duration(
@@ -391,19 +392,19 @@ def main(argv):
     entries_counter.update(batch.shape[0])
 
   utils.to_json_file(
-      os.path.join(
-        _FLAG_OUTPUT_PATH.value,
-        _FLAG_SPLIT.value,
-        _FLAG_APPROACH_TYPE.value,
-        time.strftime("%Y%m%d-%H%M%S.json")
-      ),
-      dict(
-          flags={
-            flag.name: flag.value
-            for flag in flags.FLAGS.flags_by_module_dict()[argv[0]]
-          },
-          generations=generations
-      )
+    os.path.join(
+      _FLAG_OUTPUT_PATH.value,
+      _FLAG_SPLIT.value,
+      _FLAG_APPROACH_TYPE.value,
+      time.strftime("%Y%m%d-%H%M%S.json")
+    ),
+    dict(
+      flags={
+        flag.name: flag.value
+        for flag in flags.FLAGS.flags_by_module_dict()[argv[0]]
+      },
+      generations=generations
+    )
   )
   logging.debug("Saved to: %s", _FLAG_OUTPUT_PATH.value)
 
