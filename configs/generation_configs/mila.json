@@ -5,7 +5,6 @@
   "batch_size": 1,
   "generation_length_limit": 1024,
   "hf-model-key": "gpt2-xl",
-  "tpu-is-local": true,
   "ckpt_path": "/home/mila/g/gagnonju/ckpt-1431464.index",
   "approach_type": "cached_pretok"
 }
