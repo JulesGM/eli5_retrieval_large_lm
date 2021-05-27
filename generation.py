@@ -26,6 +26,7 @@ import absl.app as app
 import absl.flags as flags
 import absl.logging as absl_logging
 import colored_traceback.auto
+import rich
 import tensorflow as tf
 import tqdm
 import transformers
@@ -128,6 +129,30 @@ _FLAG_HF_MODEL_KEY = flags.DEFINE_string(
 )
 
 
+def make_further_prep_generate_not_test(eos_token_id):
+    def further_prep_generate_not_test(
+            batch: Dict[str, tf.Tensor]
+        ) -> tf.Tensor:
+        batch = tf.boolean_mask(
+            batch["input_ids"],
+            tf.logical_and(batch["label_ids"] == -100,
+                           batch["input_ids"] != eos_token_id
+                           )
+        )
+        return batch
+    return further_prep_generate_not_test
+
+
+def make_further_prep_generate_test(eos_token_id):
+    @tf.function
+    def further_prep_generate_test(batch: Dict[str, tf.Tensor]) -> tf.Tensor:
+        batch = tf.boolean_mask(
+            batch["input_ids"], batch["input_ids"] != eos_token_id
+        )
+        return batch
+    return further_prep_generate_test
+
+
 def make_model_tf(path: str, mode: str) -> tf.Tensor:
   with utils.log_duration(LOGGER, make_model_tf.__name__, "Load model."):
     if mode == constants.SaveModeChoices.hfh5:
@@ -149,6 +174,24 @@ def make_model_tf(path: str, mode: str) -> tf.Tensor:
     else:
       raise RuntimeError(f"Unsupported Save Mode: {mode}")
   return model
+
+
+def print_sample(sample):
+
+    titles = ["Question:", "Answer:", "Context:"]
+
+    # Monokai
+    title_color = "#6c99bb"
+    normal_color = "#d6d6d6"
+    background_color = "#2e2e2e"
+
+    sample = f"[{normal_color} on {background_color}]" + sample + "[/]"
+    for title in titles:
+        sample = sample.replace(
+            title, f"[{title_color}]{title}[/]"
+        )
+
+    rich.print(sample)
 
 
 def main(argv):
@@ -201,7 +244,6 @@ def main(argv):
   ##############################################################################
   # Load Model
   ##############################################################################
-
   with utils.log_duration(LOGGER, main.__name__, "All of model preparation"):
     with strategy.scope():
       # HF isn't able to read directly from GCS
@@ -270,27 +312,21 @@ def main(argv):
   batch_size = _FLAG_BATCH_SIZE.value * num_replicas
   approach_type = _FLAG_APPROACH_TYPE.value
 
-  # Things that will never change:
-  random_seed = 0
-  use_helper_words = True
-  retrieval_temperature = 1
-  context_window_size = 1024
-
   logging.debug("Loading dataset.")
   tokenizer = transformers.GPT2TokenizerFast.from_pretrained("gpt2-xl")
   ds = task_specific.create_lm_ds_kilt_eli5(
       tokenizer=tokenizer,
-      context_window_size=context_window_size,
+      context_window_size=1024,
       dataset_name="kilt_eli5",
       batch_size=1,  # >> We set our own batch size elsewhere
       db_path=None, # None,
-      random_seed=random_seed,
+      random_seed=0,
       use_subset=False,
       subset_size=-1,
-      use_helper_words=use_helper_words,
+      use_helper_words=True,
       approach_type=approach_type,
       num_retrievals=5,  # Will never change
-      retrieval_temperature=retrieval_temperature,
+      retrieval_temperature=1.,
       retriever=None,  # Cached retrievals don't need a retriever
       repeat=False,  # Will never change
       split=_FLAG_SPLIT.value,
@@ -302,26 +338,10 @@ def main(argv):
       max_length_generation=_FLAG_GENERATION_LENGTH_LIMIT.value
   )
 
-  def further_prep_generate_not_test(batch: Dict[str, tf.Tensor]) -> tf.Tensor:
-    batch = tf.boolean_mask(
-        batch["input_ids"],
-        tf.logical_and(batch["label_ids"] == -100,
-                       batch["input_ids"] != tokenizer.eos_token_id
-                       )
-    )
-    return batch
-
-  @tf.function
-  def further_prep_generate_test(batch: Dict[str, tf.Tensor]) -> tf.Tensor:
-    batch = tf.boolean_mask(
-        batch["input_ids"], batch["input_ids"] != tokenizer.eos_token_id
-    )
-    return batch
-
   if _FLAG_SPLIT.value == constants.SplitChoices.test:
-    ds = ds.map(further_prep_generate_test)
+    ds = ds.map(make_further_prep_generate_test(tokenizer.eos_token_id))
   else:
-    ds = ds.map(further_prep_generate_not_test)
+    ds = ds.map(make_further_prep_generate_not_test(tokenizer.eos_token_id))
 
   ds = ds.padded_batch(
       batch_size=batch_size, padding_values=tokenizer.eos_token_id
@@ -333,12 +353,15 @@ def main(argv):
   ##############################################################################
   LOGGER.debug("Generating.")
   generations = []
-  counter = tqdm.tqdm(
-      ds,
-      total=task_specific.DATASET_CARDINALITIES["kilt_eli5"][_FLAG_SPLIT.value]
+  num_entries_in_split = (
+      task_specific.DATASET_CARDINALITIES["kilt_eli5"][_FLAG_SPLIT.value]
   )
 
-  for batch_no, batch in enumerate(counter):
+  entries_counter = tqdm.tqdm(total=num_entries_in_split)
+  for batch_no, batch in ds:
+    # Calling model.generate. We should make a config file with the
+    # hyperparameters for generation, or make a facility in the one we already
+    # have. I feel like a separate one would be better, separating concerns.
     output = strategy.run(model.generate, kwargs=dict(
         input_ids=batch,
         max_length=_FLAG_GENERATION_LENGTH_LIMIT.value,
@@ -361,9 +384,11 @@ def main(argv):
         text = tokenizer.decode(output.numpy()[i])
         LOGGER.debug("Batch %d Generation %d", batch_no, i)
         LOGGER.debug(text.replace("\n", " <\\n> "))
+        LOGGER.debug(text)
+        print_sample(text)
         generations.append(text)
 
-    counter.update(batch.shape[0])
+    entries_counter.update(batch.shape[0])
 
   utils.to_json_file(
       os.path.join(
