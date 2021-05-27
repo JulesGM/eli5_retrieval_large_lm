@@ -17,6 +17,7 @@
 import logging
 import operator
 import os
+import re
 import subprocess
 import tempfile
 import time
@@ -28,6 +29,8 @@ import absl.logging as absl_logging
 import colored_traceback.auto
 import rich
 import rich.console
+import rich.panel
+import rich.style
 import tensorflow as tf
 import tqdm
 import transformers
@@ -177,22 +180,27 @@ def make_model_tf(path: str, mode: str) -> tf.Tensor:
   return model
 
 
-def print_sample(sample, console):
-  titles = ["Question:", "Answer:", "Context:"]
-
+def make_print_sample():
   # Monokai
   title_color = "#6c99bb"
   normal_color = "#d6d6d6"
   background_color = "#2e2e2e"
+  titles = ["Question:", "Answer:", "Context:"]
+  titles_pattern = (
+      r"(" +
+      "|".join([re.escape(title) for title in titles]) +
+      r")"
+  )
+  titles_regex = re.compile(titles_pattern)
 
-  sample = f"[{normal_color} on {background_color}]" + sample + "[/]"
-  for title in titles:
-    sample = sample.replace(
-      title, f"[{title_color}]{title}[/]"
+  def print_sample(sample, console):
+    sample = f"[{normal_color}]" + sample + "[/]"
+    sample = titles_regex.sub(f"[{title_color} bold]" + r"\1[/]", sample)
+    panel = rich.panel.Panel(
+      sample, style=rich.style.Style(bgcolor=background_color)
     )
-
-  console.print(sample)
-
+    console.print(panel)
+  return print_sample
 
 def main(argv):
   if len(argv) > 1:
@@ -366,7 +374,7 @@ def main(argv):
       input_ids=batch,
       max_length=_FLAG_GENERATION_LENGTH_LIMIT.value,
       use_cache=True,
-      attention_mask=tf.cast(batch == tokenizer.eos_token_id, tf.int32),
+      attention_mask=tf.cast(batch != tokenizer.eos_token_id, tf.int32),
     ))
 
     LOGGER.debug("INPUT: %s", tokenizer.decode(batch[0]))
@@ -378,6 +386,8 @@ def main(argv):
     )
 
     rich_console = rich.console.Console(color_system="256")
+    print_sample = make_print_sample()
+
     with utils.log_duration(
         LOGGER, "main", "all of tokenizer.decode for a batch."
     ):
@@ -385,7 +395,6 @@ def main(argv):
         text = tokenizer.decode(output.numpy()[i])
         LOGGER.debug("Batch %d Generation %d", batch_no, i)
         LOGGER.debug(text.replace("\n", " <\\n> "))
-        LOGGER.debug(text)
         print_sample(text, rich_console)
         generations.append(text)
 
