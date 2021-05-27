@@ -205,50 +205,50 @@ def main(argv):
   with utils.log_duration(LOGGER, main.__name__, "All of model preparation"):
     with strategy.scope():
       # HF isn't able to read directly from GCS
-      # if (model_path.startswith("gs://")
-      #     and mode == constants.SaveModeChoices.hfh5):
-      #   with utils.log_duration(
-      #       LOGGER,
-      #       main.__name__,
-      #       "Download model from GS"
-      #   ):
-      #     with tempfile.TemporaryDirectory() as td:
-      #       td += os.path.sep
-      #
-      #       if os.path.exists("/root/google-cloud-sdk/bin/gsutil"):
-      #         exec_ = "/root/google-cloud-sdk/bin/gsutil"
-      #       else:
-      #         exec_ = "gsutil"
-      #
-      #       command = [
-      #           exec_,
-      #           "-m",
-      #           "cp",
-      #           "-r",
-      #           os.path.join(model_path, "*"),
-      #           td,
-      #       ]
-      #       LOGGER.debug("Running bash command: %s", " ".join(command))
-      #       subprocess.check_call(command)
-      #       LOGGER.debug(
-      #           "Files at the temp dir(%s): %s", td, str(os.listdir(td))
-      #       )
-      #
-      #       model = make_model_tf(td, mode=mode)
-      # else:
-      model = make_model_tf(model_path, mode=mode)
+      if (model_path.startswith("gs://")
+          and mode == constants.SaveModeChoices.hfh5):
+        with utils.log_duration(
+            LOGGER,
+            main.__name__,
+            "Download model from GS"
+        ):
+          with tempfile.TemporaryDirectory() as td:
+            td += os.path.sep
 
-  model.__call__ = tf.function(
-      model.__call__,
-      experimental_relax_shapes=True,
-      # experimental_compile=True,
-  )
+            if os.path.exists("/root/google-cloud-sdk/bin/gsutil"):
+              exec_ = "/root/google-cloud-sdk/bin/gsutil"
+            else:
+              exec_ = "gsutil"
 
-  model.generate = tf.function(
-      model.generate,
-      experimental_relax_shapes=True,
-      # experimental_compile=True,
-  )
+            command = [
+                exec_,
+                "-m",
+                "cp",
+                "-r",
+                os.path.join(model_path, "*"),
+                td,
+            ]
+            LOGGER.debug("Running bash command: %s", " ".join(command))
+            subprocess.check_call(command)
+            LOGGER.debug(
+                "Files at the temp dir(%s): %s", td, str(os.listdir(td))
+            )
+
+            model = make_model_tf(td, mode=mode)
+      else:
+        model = make_model_tf(model_path, mode=mode)
+
+  # model.__call__ = tf.function(
+  #     model.__call__,
+  #     experimental_relax_shapes=True,
+  #     # experimental_compile=True,
+  # )
+  #
+  # model.generate = tf.function(
+  #     model.generate,
+  #     experimental_relax_shapes=True,
+  #     # experimental_compile=True,
+  # )
 
   utils.check_not_none(model)
 
@@ -343,7 +343,7 @@ def main(argv):
         input_ids=batch,
         max_length=_FLAG_GENERATION_LENGTH_LIMIT.value,
         use_cache=True,
-        attention_mask=batch == tokenizer.eos_token_id
+        attention_mask=tf.cast(batch == tokenizer.eos_token_id, tf.int32),
     ))
 
     LOGGER.debug("INPUT: %s", tokenizer.decode(batch[0]))

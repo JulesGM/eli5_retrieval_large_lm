@@ -514,10 +514,7 @@ def _tokenize_and_concat_while_loop(
 ):
   tf_utils.check_tf_tensor(all_retrieved_tokens)
   tf_utils.check_tf_tensor(indices)
-  num_retrieved = tf.constant(num_retrieved)
-  batch_size = tf.constant(batch_size)
-  # tf_utils.check_tf_tensor(num_retrieved)
-  # tf_utils.check_tf_tensor(batch_size)
+
 
   """Tokenizes and puts together the retrievals, per batch unit."""
   def condition(
