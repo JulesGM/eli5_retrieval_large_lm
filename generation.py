@@ -358,7 +358,7 @@ def main(argv):
   )
 
   entries_counter = tqdm.tqdm(total=num_entries_in_split)
-  for batch_no, batch in ds:
+  for batch_no, batch in enumerate(ds):
     # Calling model.generate. We should make a config file with the
     # hyperparameters for generation, or make a facility in the one we already
     # have. I feel like a separate one would be better, separating concerns.
