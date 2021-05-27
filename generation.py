@@ -27,6 +27,7 @@ import absl.flags as flags
 import absl.logging as absl_logging
 import colored_traceback.auto
 import rich
+import rich.console
 import tensorflow as tf
 import tqdm
 import transformers
@@ -176,7 +177,7 @@ def make_model_tf(path: str, mode: str) -> tf.Tensor:
   return model
 
 
-def print_sample(sample):
+def print_sample(sample, console):
   titles = ["Question:", "Answer:", "Context:"]
 
   # Monokai
@@ -190,7 +191,7 @@ def print_sample(sample):
       title, f"[{title_color}]{title}[/]"
     )
 
-  rich.print(sample)
+  console.print(sample)
 
 
 def main(argv):
@@ -200,10 +201,6 @@ def main(argv):
   utils.check_contained(_FLAG_APPROACH_TYPE.value, _ACCEPTABLE_APPROACHES)
   # db_path = _FLAG_DB_PATH.value
 
-  num_colors = subprocess.check_output(["tput", "colors"]).strip().decode()
-  print(f"Got `{num_colors}` colors.")
-  rich.print("[red] This is a test![/]")
-  return
   utils.check_operator(
     operator.xor,
     bool(_FLAG_H5_MODEL_PATH.value),
@@ -380,6 +377,7 @@ def main(argv):
       name="generations"
     )
 
+    rich_console = rich.console.Console(color_system="256")
     with utils.log_duration(
         LOGGER, "main", "all of tokenizer.decode for a batch."
     ):
@@ -388,7 +386,7 @@ def main(argv):
         LOGGER.debug("Batch %d Generation %d", batch_no, i)
         LOGGER.debug(text.replace("\n", " <\\n> "))
         LOGGER.debug(text)
-        print_sample(text)
+        print_sample(text, rich_console)
         generations.append(text)
 
     entries_counter.update(batch.shape[0])
