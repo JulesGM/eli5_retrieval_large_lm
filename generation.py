@@ -200,6 +200,8 @@ def main(argv):
   utils.check_contained(_FLAG_APPROACH_TYPE.value, _ACCEPTABLE_APPROACHES)
   # db_path = _FLAG_DB_PATH.value
 
+  num_colors = subprocess.check_output(["tput", "colors"]).strip().decode()
+  print(f"Got `{num_colors}` colors.")
   rich.print("[red] This is a test![/]")
   return
   utils.check_operator(
