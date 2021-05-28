@@ -203,7 +203,7 @@ def make_print_sample():
     """Pretty print samples using Python rich.
     The parsing is pretty frail, but that's not a big deal.
     """
-    sample = sample.replace("\n", " <\\n> ")
+    # sample = sample.replace("\n", " <\\n> ")
     for title in titles:
       sample = sample.replace(
         title, f"\n\n[{title_color} bold]{title}[/]"
@@ -247,6 +247,10 @@ def main(argv):
   # ONLY GPU IS SUPPORTED
   utils.check_equal(device_type, "GPU")
 
+
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # Build the distribution strategy
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if device_type == "TPU":
     # ONLY LOCAL TPU IS "SUPPORTED"
     utils.check_isinstance(_FLAG_IS_LOCAL_TPU.value, bool)
@@ -255,12 +259,12 @@ def main(argv):
     utils.check_isinstance(tpu_config, tf_utils.TpuConfigType)
     utils.check_not_none(tpu_config)
     strategy = tf.distribute.TPUStrategy(tpu_config.resolver)
-  elif device_type == "GPU" or "CPU":
-    # MirroredStrategy automatically becomes OneDeviceStrategy if there is
-    # just one device, like one GPU or only CPUs.
-    strategy = tf.distribute.MirroredStrategy()
+  elif device_type == "GPU":
+    strategy = tf.distribute.MirroredStrategy(
+      devices=tf.config.experimental.list_logical_devices('GPU')
+    )
   else:
-    raise RuntimeError()
+    raise RuntimeError(device_type)
 
   # ONLY GPU IS SUPPORTED
   print(tf.config.list_logical_devices())
@@ -403,12 +407,12 @@ def main(argv):
       name="generations"
     )
 
-    rich_console = rich.console.Console(color_system="256")
-    print_sample = make_print_sample()
-
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Display the inputs and outputs.
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    rich_console = rich.console.Console(color_system="256")
+    print_sample = make_print_sample()
+
     with utils.log_duration(
         LOGGER, "main", "all of tokenizer.decode for a batch."
     ):

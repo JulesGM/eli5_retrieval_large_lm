@@ -161,7 +161,7 @@ def make_dict_distribute_fn(batch):
   return dict_distribute_fn
 
 
-def deal_w_entry(strategy_outputs):
+def to_eager_tensor(strategy_outputs):
   output = strategy_outputs.values  # pytype: disable=attribute-error
   if isinstance(strategy_outputs, tuple):
     output = tf.concat(output, axis=0)
@@ -174,29 +174,46 @@ def process_strat_output(
     strategy,
     current_batch_size,
 ):
-  """Uniformizes the different outputs of strategy.run calls."""
+  """Uniformizes the different outputs of strategy.run calls.
+  """
+  ##############################################################################
+  # Single PerReplica
+  ##############################################################################
   if isinstance(strategy_outputs, values.PerReplica):
     strategy_outputs: values.PerReplica
-    # LOGGER.debug("process_strat_output: %s: %s", name, str(strategy_outputs))
-    output = deal_w_entry(strategy_outputs)
+    output = to_eager_tensor(strategy_outputs)
     utils.check_equal(output.shape, current_batch_size)
+
+  ##############################################################################
+  # Tuple of PerReplicas
+  ##############################################################################
   elif (isinstance(strategy_outputs, tuple) and
         isinstance(strategy_outputs[0], values.PerReplica)):
     strategy_outputs: Tuple[values.PerReplica, Ellipsis]
     output = []
     for indiv_val in strategy_outputs:
-      output.append(deal_w_entry(indiv_val))
+      output.append(to_eager_tensor(indiv_val))
     output = tuple(output)
+
+  ##############################################################################
+  # Dict of PerReplicas
+  ##############################################################################
   elif (isinstance(strategy_outputs, dict) and
         isinstance(next(iter(strategy_outputs.values())), values.PerReplica)):
     strategy_outputs: Dict[str, values.PerReplica]
     output = {}
     for k, indiv_val in strategy_outputs.items():
-      output[k] = deal_w_entry(indiv_val)
-  elif isinstance(
-      strategy_outputs,
-      ops.EagerTensor) or (isinstance(strategy_outputs, tuple) and
-                           isinstance(strategy_outputs[0], ops.EagerTensor)):
+      output[k] = to_eager_tensor(indiv_val)
+
+  ##############################################################################
+  # EagerTensor
+  ##############################################################################
+  elif (
+      isinstance(strategy_outputs, ops.EagerTensor) or (
+        isinstance(strategy_outputs, tuple) and
+        isinstance(strategy_outputs[0], ops.EagerTensor)
+      )
+  ):
     output = strategy_outputs
   else:
     raise RuntimeError(
