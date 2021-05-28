@@ -205,7 +205,7 @@ def make_print_sample():
     """
     for title in titles:
       sample = sample.replace(
-        sample, title, f"\n\n[{title_color} bold]{sample}[/]"
+        title, f"\n\n[{title_color} bold]{sample}[/]"
       )
 
     panel = rich.panel.Panel(
