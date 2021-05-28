@@ -208,7 +208,6 @@ def main(argv):
     raise RuntimeError(argv[1:])
   absl_logging.use_python_logging()
   utils.check_contained(_FLAG_APPROACH_TYPE.value, _ACCEPTABLE_APPROACHES)
-  # db_path = _FLAG_DB_PATH.value
 
   utils.check_operator(
     operator.xor,
@@ -344,7 +343,7 @@ def main(argv):
     dataset_type=_FLAG_DATASET_TYPE.value,
     tfr_prefix=_FLAG_TFR_PREFIX.value,
     qty_shuffle=1,  # Will never change
-    max_length_generation=_FLAG_GENERATION_LENGTH_LIMIT.value
+    max_length_generation=350
   )
 
   if _FLAG_SPLIT.value == constants.SplitChoices.test:
