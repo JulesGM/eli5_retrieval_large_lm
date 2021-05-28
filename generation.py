@@ -398,9 +398,8 @@ def main(argv):
       max_length=_FLAG_GENERATION_LENGTH_LIMIT.value,
       use_cache=True,
       attention_mask=tf.cast(batch != tokenizer.eos_token_id, tf.int32),
+      repetition_penalty=2.,
     ))
-
-    LOGGER.debug("INPUT: %s", tokenizer.decode(batch[0]))
     output = tf_utils.process_strat_output(
       strategy_outputs=output,
       current_batch_size=batch_size,
