@@ -339,7 +339,6 @@ def main(argv):
   utils.check_equal(devices[0].device_type, "GPU")
 
   # Only a batch size of 1 is currently supported. We need attention masks
-  utils.check_equal(_FLAG_BATCH_SIZE.value, 1)
   batch_size = _FLAG_BATCH_SIZE.value * num_replicas
   approach_type = _FLAG_APPROACH_TYPE.value
 
