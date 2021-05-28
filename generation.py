@@ -198,25 +198,22 @@ def make_print_sample():
   normal_color = "#d6d6d6"
   background_color = "#2e2e2e"
   titles = ["Question:", "Answer:", "Context:"]
-  titles_pattern = (
-      r"(" +
-      "|".join([re.escape(title) for title in titles]) +
-      r")"
-  )
-  titles_regex = re.compile(titles_pattern)
 
   def print_sample(sample, console):
     """Pretty print samples using Python rich.
     The parsing is pretty frail, but that's not a big deal.
     """
-    # sample = f"[{normal_color}]" + sample + "[/]"
-    sample = titles_regex.sub(f"[{title_color} bold]" + r"\1[/]", sample)
+    for title in titles:
+      sample = sample.replace(
+        sample, title, f"\n\n[{title_color} bold]{sample}[/]"
+      )
+
     panel = rich.panel.Panel(
       sample, style=rich.style.Style(
         bgcolor=background_color, color=normal_color
       )
     )
-    # print(sample)
+
     console.print(panel)
   return print_sample
 
@@ -412,7 +409,7 @@ def main(argv):
       for i in range(batch_size):
         text = tokenizer.decode(output.numpy()[i])
         LOGGER.debug("Batch %d Generation %d", batch_no, i)
-        # LOGGER.debug(text.replace("\n", " <\\n> "))
+        text = text.replace("\n", " <\\n> ")
         print_sample(text, rich_console)
         generations.append(text)
 
