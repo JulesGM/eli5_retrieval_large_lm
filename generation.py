@@ -411,7 +411,9 @@ def main(argv):
     ):
       for i in range(batch_size):
         text = tokenizer.decode(output.numpy()[i])
-        LOGGER.debug("Batch %d Generation %d", batch_no, i)
+        # LOGGER.debug("Batch %d Generation %d", batch_no, i)
+        print("#" * 1000)
+        print(f"Batch {batch_no} Generation {i}")
         print_sample(
           batch.numpy()[i], f"input batch_no {batch_no}", rich_console
         )
@@ -419,7 +421,7 @@ def main(argv):
           text, "output batch_no {batch_no}", rich_console
         )
         generations.append(text)
-
+      print("#" * 1000)
     entries_counter.update(batch.shape[0])
 
   utils.to_json_file(
