@@ -201,6 +201,7 @@ def make_print_sample():
 
   def print_sample(sample, title, console):
     """Pretty print samples using Python rich.
+
     The parsing is pretty frail, but that's not a big deal.
     """
     # sample = sample.replace("\n", " <\\n> ")
