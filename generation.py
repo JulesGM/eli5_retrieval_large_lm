@@ -48,11 +48,7 @@ _ACCEPTABLE_APPROACHES = frozenset([
   constants.ApproachTypeChoices.cached_pretok
 ])
 
-# _FLAG_DB_PATH = flags.DEFINE_string(
-#     "db_path",
-#     None,
-#     "Path to the dataset. Can be on Google Cloud."
-# )
+
 _FLAG_H5_MODEL_PATH = flags.DEFINE_string(
   "h5_path",
   None,
@@ -137,12 +133,13 @@ def make_further_prep_generate_not_test(eos_token_id):
   def further_prep_generate_not_test(
       batch: Dict[str, tf.Tensor]
   ) -> tf.Tensor:
-    batch = tf.boolean_mask(
-      batch["input_ids"],
-      tf.logical_and(batch["label_ids"] == -100,
-                     batch["input_ids"] != eos_token_id
-                     )
-    )
+    """Removes padding tokens and answer tokens from the input text.
+    """
+    setup_tokens = batch["label_ids"] == -100
+    text_tokens = batch["input_ids"] != eos_token_id
+    context_tokens = tf.logical_and(setup_tokens, text_tokens)
+
+    batch = tf.boolean_mask(batch["input_ids"], context_tokens)
     return batch
   return further_prep_generate_not_test
 
@@ -150,14 +147,29 @@ def make_further_prep_generate_not_test(eos_token_id):
 def make_further_prep_generate_test(eos_token_id):
   @tf.function
   def further_prep_generate_test(batch: Dict[str, tf.Tensor]) -> tf.Tensor:
+    """Removes padding tokens from the input.
+    For test, we don't have answers, so we can assume that the whole
+    thing is setup text.
+
+    # TODO: maybe merge with other version of this function.
+    """
+
+    text_tokens = batch["input_ids"] != eos_token_id
     batch = tf.boolean_mask(
-      batch["input_ids"], batch["input_ids"] != eos_token_id
+      batch["input_ids"], text_tokens
     )
     return batch
   return further_prep_generate_test
 
 
 def make_model_tf(path: str, mode: str) -> tf.Tensor:
+  """Prepare the model for generation.
+  Loads the model architecture from the huggingface pre-trained model, then
+  loads a checkpoint.
+
+  TODO: There must be a way to just load from config + checkpoint, no pretrained
+    weights.
+  """
   with utils.log_duration(LOGGER, make_model_tf.__name__, "Load model."):
     if mode == constants.SaveModeChoices.hfh5:
       config_path = os.path.join(path, "config.json")
@@ -194,12 +206,17 @@ def make_print_sample():
   titles_regex = re.compile(titles_pattern)
 
   def print_sample(sample, console):
-    sample = f"[{normal_color}]" + sample + "[/]"
+    """Pretty print samples using Python rich.
+    The parsing is pretty frail, but that's not a big deal.
+    """
+    # sample = f"[{normal_color}]" + sample + "[/]"
     sample = titles_regex.sub(f"[{title_color} bold]" + r"\1[/]", sample)
     panel = rich.panel.Panel(
-      sample, style=rich.style.Style(bgcolor=background_color)
+      sample, style=rich.style.Style(
+        bgcolor=background_color, color=normal_color
+      )
     )
-    print(sample)
+    # print(sample)
     console.print(panel)
   return print_sample
 
@@ -351,6 +368,7 @@ def main(argv):
   else:
     ds = ds.map(make_further_prep_generate_not_test(tokenizer.eos_token_id))
 
+  # Pad to the max length
   ds = ds.padded_batch(
     batch_size=batch_size, padding_values=tokenizer.eos_token_id
   )
@@ -394,7 +412,7 @@ def main(argv):
       for i in range(batch_size):
         text = tokenizer.decode(output.numpy()[i])
         LOGGER.debug("Batch %d Generation %d", batch_no, i)
-        LOGGER.debug(text.replace("\n", " <\\n> "))
+        # LOGGER.debug(text.replace("\n", " <\\n> "))
         print_sample(text, rich_console)
         generations.append(text)
 
