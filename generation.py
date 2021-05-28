@@ -406,24 +406,30 @@ def main(argv):
     rich_console = rich.console.Console(color_system="256")
     print_sample = make_print_sample()
 
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Display the inputs and outputs.
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     with utils.log_duration(
         LOGGER, "main", "all of tokenizer.decode for a batch."
     ):
       for i in range(batch_size):
-        text = tokenizer.decode(output.numpy()[i])
-        # LOGGER.debug("Batch %d Generation %d", batch_no, i)
+        input_text = tokenizer.decode(batch.numpy()[i])
+        output_text = tokenizer.decode(output.numpy()[i])
         print("#" * 1000)
         print(f"Batch {batch_no} Generation {i}")
         print_sample(
-          batch.numpy()[i], f"input batch_no {batch_no}", rich_console
+          input_text, f"input batch_no {batch_no}", rich_console
         )
         print_sample(
-          text, "output batch_no {batch_no}", rich_console
+          output_text, f"output batch_no {batch_no}", rich_console
         )
-        generations.append(text)
+        generations.append(output_text)
       print("#" * 1000)
     entries_counter.update(batch.shape[0])
 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # Save the output to a JSON File.
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   utils.to_json_file(
     os.path.join(
       _FLAG_OUTPUT_PATH.value,
