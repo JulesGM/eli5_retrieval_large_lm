@@ -206,8 +206,9 @@ def make_print_sample():
     """
     # sample = sample.replace("\n", " <\\n> ")
     for title in titles:
+      sample = re.sub(re.escape(title) + "\n+", title, sample)
       sample = sample.replace(
-        title, f"\n\n[{title_color} bold]{title}[/]"
+        title, f"\n\n[{title_color} bold]{title}[/]\n"
       )
 
     panel = rich.panel.Panel(
@@ -398,7 +399,9 @@ def main(argv):
       max_length=_FLAG_GENERATION_LENGTH_LIMIT.value,
       use_cache=True,
       attention_mask=tf.cast(batch != tokenizer.eos_token_id, tf.int32),
+
       repetition_penalty=2.,
+      num_beams=5,
     ))
     output = tf_utils.process_strat_output(
       strategy_outputs=output,

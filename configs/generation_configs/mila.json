@@ -2,7 +2,7 @@
   "tfr_prefix": "/home/mila/g/gagnonju/eli5_project/eli5_data/",
   "output_path": "/home/mila/g/gagnonju/output/generations",
   "logger_levels": "__main__:DEBUG,eli5_retrieval_large_lm.bert_utils:DEBUG,eli5_retrieval_large_lm.retrievers:DEBUG,eli5_retrieval_large_lm.scann_utils:DEBUG,eli5_retrieval_large_lm.task_specific:DEBUG,eli5_retrieval_large_lm.utils:DEBUG,tf_utils:DEBUG",
-  "batch_size": 1,
+  "batch_size": 2,
   "generation_length_limit": 1024,
   "hf-model-key": "gpt2-xl",
   "ckpt_path": "/home/mila/g/gagnonju/ckpt-1431464.index",
