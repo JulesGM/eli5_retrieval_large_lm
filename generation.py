@@ -199,7 +199,7 @@ def make_print_sample():
   background_color = "#2e2e2e"
   titles = ["Question:", "Answer:", "Context:"]
 
-  def print_sample(sample, title, console):
+  def print_sample(sample, panel_title, console):
     """Pretty print samples using Python rich.
 
     The parsing is pretty frail, but that's not a big deal.
@@ -212,7 +212,7 @@ def make_print_sample():
 
     panel = rich.panel.Panel(
       sample.strip(),
-      title=title,
+      title=panel_title,
       style=rich.style.Style(
         bgcolor=background_color, color=normal_color
       )
