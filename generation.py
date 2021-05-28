@@ -199,6 +199,7 @@ def make_print_sample():
     panel = rich.panel.Panel(
       sample, style=rich.style.Style(bgcolor=background_color)
     )
+    print(sample)
     console.print(panel)
   return print_sample
 
