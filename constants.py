@@ -17,6 +17,11 @@
 import utils
 
 
+class HelperWordModeChoices(utils.FlagChoices):
+  once = "once"
+  multiple = "multiple"
+
+
 class DistributeModeChoices(utils.FlagChoices):
   # mirroredstrategy = "MirroredStrategy"
   onedevicestrategy = "OneDeviceStrategy"

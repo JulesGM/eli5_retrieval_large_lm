@@ -129,37 +129,26 @@ _FLAG_HF_MODEL_KEY = flags.DEFINE_string(
 )
 
 
-def make_further_prep_generate_not_test(eos_token_id):
-  def further_prep_generate_not_test(
-      batch: Dict[str, tf.Tensor]
+def make_further_prep_generate(eos_token_id, split):
+  def further_prep_generate(
+      batch: Dict[str, tf.Tensor],
   ) -> tf.Tensor:
-    """Removes padding tokens and answer tokens from the input text.
     """
-    setup_tokens = batch["label_ids"] == -100
-    text_tokens = batch["input_ids"] != eos_token_id
-    context_tokens = tf.logical_and(setup_tokens, text_tokens)
-
-    batch = tf.boolean_mask(batch["input_ids"], context_tokens)
-    return batch
-  return further_prep_generate_not_test
-
-
-def make_further_prep_generate_test(eos_token_id):
-  @tf.function
-  def further_prep_generate_test(batch: Dict[str, tf.Tensor]) -> tf.Tensor:
-    """Removes padding tokens from the input.
-    For test, we don't have answers, so we can assume that the whole
-    thing is setup text.
-
-    # TODO: maybe merge with other version of this function.
+    -> Removes the answer tokens.
+    -> Removes the padding tokens.
+    All samples should have the same size.
     """
-
-    text_tokens = batch["input_ids"] != eos_token_id
-    batch = tf.boolean_mask(
-      batch["input_ids"], text_tokens
-    )
+    print(f"further_prep_generate: {batch['input_ids'].shape = }")
+    if split == "test":
+      setup_tokens = batch["label_ids"] == -100
+    else:
+      setup_tokens = tf.logical_and(
+        batch["label_ids"] == -100, batch["input_ids"] != eos_token_id
+      )
+    assert len(batch["input_ids"].shape) == 2, batch["input_ids"].shape
+    batch = tf.boolean_mask(batch["input_ids"], setup_tokens)
     return batch
-  return further_prep_generate_test
+  return further_prep_generate
 
 
 def make_model_tf(path: str, mode: str) -> tf.Tensor:
@@ -222,6 +211,14 @@ def make_print_sample():
     console.print(panel)
   return print_sample
 
+
+def prep_ds_for_generation(args, tokenizer, split):
+  ds = task_specific.create_lm_ds_kilt_eli5(**args)
+  # ds = ds.map(make_further_prep_generate(tokenizer.eos_token_id, split))
+  ds = map(make_further_prep_generate(tokenizer.eos_token_id, split), ds)
+  return ds
+
+
 def main(argv):
   if len(argv) > 1:
     raise RuntimeError(argv[1:])
@@ -248,7 +245,6 @@ def main(argv):
 
   # ONLY GPU IS SUPPORTED
   utils.check_equal(device_type, "GPU")
-
 
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # Build the distribution strategy
@@ -311,18 +307,6 @@ def main(argv):
       else:
         model = make_model_tf(model_path, mode=mode)
 
-  # model.__call__ = tf.function(
-  #     model.__call__,
-  #     experimental_relax_shapes=True,
-  #     # experimental_compile=True,
-  # )
-  #
-  # model.generate = tf.function(
-  #     model.generate,
-  #     experimental_relax_shapes=True,
-  #     # experimental_compile=True,
-  # )
-
   utils.check_not_none(model)
 
   ##############################################################################
@@ -344,12 +328,12 @@ def main(argv):
 
   logging.debug("Loading dataset.")
   tokenizer = transformers.GPT2TokenizerFast.from_pretrained("gpt2-xl")
-  ds = task_specific.create_lm_ds_kilt_eli5(
+  ds = prep_ds_for_generation(dict(
     tokenizer=tokenizer,
     context_window_size=1024,
     dataset_name="kilt_eli5",
     batch_size=1,  # >> We set our own batch size elsewhere
-    db_path=None, # None,
+    db_path=None,  # None,
     random_seed=0,
     use_subset=False,
     subset_size=-1,
@@ -366,17 +350,8 @@ def main(argv):
     tfr_prefix=_FLAG_TFR_PREFIX.value,
     qty_shuffle=1,  # Will never change
     max_length_generation=350
-  )
+  ), tokenizer, _FLAG_SPLIT.value)
 
-  if _FLAG_SPLIT.value == constants.SplitChoices.test:
-    ds = ds.map(make_further_prep_generate_test(tokenizer.eos_token_id))
-  else:
-    ds = ds.map(make_further_prep_generate_not_test(tokenizer.eos_token_id))
-
-  # Pad to the max length
-  ds = ds.padded_batch(
-    batch_size=batch_size, padding_values=tokenizer.eos_token_id
-  )
   ds = strategy.experimental_distribute_dataset(ds)
 
   ##############################################################################
@@ -389,6 +364,7 @@ def main(argv):
   )
 
   entries_counter = tqdm.tqdm(total=num_entries_in_split)
+
   for batch_no, batch in enumerate(ds):
     # Calling model.generate. We should make a config file with the
     # hyperparameters for generation, or make a facility in the one we already
@@ -412,6 +388,7 @@ def main(argv):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Display the inputs and outputs.
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     rich_console = rich.console.Console(color_system="256")
     print_sample = make_print_sample()
 

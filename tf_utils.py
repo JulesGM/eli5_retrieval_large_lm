@@ -286,7 +286,7 @@ def sample_without_replacement(logits, k):
 
 
 @dataclasses.dataclass
-class REALMSave:
+class REALMConfig:
   query_embedder_path: utils.PathType
   text_records: utils.PathType
   num_block_records: int

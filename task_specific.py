@@ -16,12 +16,17 @@
 """Dataset and model specific code.
 """
 import logging
+import numpy as np
 import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from absl import flags
 import constants
 import dataclasses
+import rich.console
+import rich.panel
+print = rich.console.Console(color_system="256").print
+
 import tensorflow as tf
 import tf_utils
 import transformers
@@ -124,10 +129,65 @@ def _create_gpt2(
       strategy=None,
   )
 
+def make_parse_fn(split: str, context_window_size: int) -> Callable:
+  description: Dict[str, tf.io.FixedLenFeature] = {
+      constants.CTH5Fields.distances:
+          tf.io.FixedLenFeature((), tf.string),
+      constants.CTH5Fields.gpt2_retrieved_ids:
+          tf.io.FixedLenFeature((), tf.string),
+      constants.CTH5Fields.gpt2_question_ids_inputs:
+          tf.io.FixedLenFeature((), tf.string),
+  }
+  if split != constants.SplitChoices.test:
+    description[
+        constants.CTH5Fields.gpt2_answer_ids_inputs
+    ] = tf.io.FixedLenFeature((), tf.string)
+
+  feature_dtypes: Dict[str, tf.dtypes] = {
+      constants.CTH5Fields.distances:
+          tf.float32,
+      constants.CTH5Fields.gpt2_retrieved_ids:
+          tf.int32,
+      constants.CTH5Fields.gpt2_question_ids_inputs:
+          tf.int32,
+  }
+  if split != constants.SplitChoices.test:
+    feature_dtypes[
+        constants.CTH5Fields.gpt2_answer_ids_inputs
+    ] = tf.int32
+
+  feature_shape: Dict[str, Tuple[int, Ellipsis]] = {
+      constants.CTH5Fields.distances:
+          (10,),
+      constants.CTH5Fields.gpt2_retrieved_ids:
+          (10, context_window_size,),
+      constants.CTH5Fields.gpt2_question_ids_inputs:
+          (context_window_size,),
+  }
+  if split != constants.SplitChoices.test:
+    feature_shape[constants.CTH5Fields.gpt2_answer_ids_inputs] = (
+        context_window_size
+    )
+
+  # @tf.function
+  def parse(sample):
+    example = tf.io.parse_single_example(sample, description)
+    output = {}
+    for k, v in example.items():
+      output[k] = tf.io.parse_tensor(v, out_type=feature_dtypes[k])
+      output[k].set_shape(feature_shape[k])
+    return output
+
+  return parse
 
 ################################################################################
 # Dataset Specific
 ################################################################################
+_HELPER_TEXT = {
+  "question": "Question:\n",
+  "context": "\nContext:\n",
+  "answer": "\nAnswer:\n"
+}
 def create_lm_ds_kilt_eli5(
     *,
     tokenizer,
@@ -204,64 +264,18 @@ def create_lm_ds_kilt_eli5(
         f"filnames is empty. Glob pattern was: {glob_pattern}"
     )
 
+  parse = make_parse_fn(split, context_window_size)
+
   ds = tf.data.TFRecordDataset(
-      filenames=filenames,
-      num_parallel_reads=tf.data.experimental.AUTOTUNE,
+    filenames=filenames,
+    num_parallel_reads=tf.data.experimental.AUTOTUNE,
   )
 
-  description: Dict[str, tf.io.FixedLenFeature] = {
-      constants.CTH5Fields.distances:
-          tf.io.FixedLenFeature((), tf.string),
-      constants.CTH5Fields.gpt2_retrieved_ids:
-          tf.io.FixedLenFeature((), tf.string),
-      constants.CTH5Fields.gpt2_question_ids_inputs:
-          tf.io.FixedLenFeature((), tf.string),
-  }
-  if split != constants.SplitChoices.test:
-    description[
-        constants.CTH5Fields.gpt2_answer_ids_inputs
-    ] = tf.io.FixedLenFeature((), tf.string)
-
-  feature_dtypes: Dict[str, tf.dtypes] = {
-      constants.CTH5Fields.distances:
-          tf.float32,
-      constants.CTH5Fields.gpt2_retrieved_ids:
-          tf.int32,
-      constants.CTH5Fields.gpt2_question_ids_inputs:
-          tf.int32,
-  }
-  if split != constants.SplitChoices.test:
-    feature_dtypes[
-        constants.CTH5Fields.gpt2_answer_ids_inputs
-    ] = tf.int32
-
-  feature_shape: Dict[str, Tuple[int, Ellipsis]] = {
-      constants.CTH5Fields.distances:
-          (10,),
-      constants.CTH5Fields.gpt2_retrieved_ids:
-          (10, context_window_size,),
-      constants.CTH5Fields.gpt2_question_ids_inputs:
-          (context_window_size,),
-  }
-  if split != constants.SplitChoices.test:
-    feature_shape[constants.CTH5Fields.gpt2_answer_ids_inputs] = (
-        context_window_size
-    )
-
-  # @tf.function
-  def parse(sample):
-    example = tf.io.parse_single_example(sample, description)
-    output = {}
-    for k, v in example.items():
-      output[k] = tf.io.parse_tensor(v, out_type=feature_dtypes[k])
-      output[k].set_shape(feature_shape[k])
-    return output
-
   ds = ds.map(
-      parse,
-      num_parallel_calls=tf.data.experimental.AUTOTUNE,
-      deterministic=False
-      )
+    parse,
+    num_parallel_calls=tf.data.experimental.AUTOTUNE,
+    deterministic=False,
+  )
 
   if repeat:
     ds = ds.repeat()
@@ -272,15 +286,18 @@ def create_lm_ds_kilt_eli5(
 
   ds = ds.batch(
       batch_size,
-      drop_remainder=split != constants.SplitChoices.test
+      drop_remainder=split != constants.SplitChoices.test,
   )
 
   # We can't use parallel calls here, the huggingface Rust fast tokenizer
   # breaks with multiple threads. It seems to still be worth it over their
   # slow one though, vs using parallel threads.
-  ds = ds.map(maybe_retrieve_and_merge,)
 
-  return ds.prefetch(tf.data.experimental.AUTOTUNE)
+  ds = ds.map(maybe_retrieve_and_merge)
+  # return map(maybe_retrieve_and_merge, ds)
+  return ds
+
+  # return ds.prefetch(tf.data.experimental.AUTOTUNE)
 
 
 def _make_maybe_retrieve_and_merge_fn(
@@ -295,7 +312,7 @@ def _make_maybe_retrieve_and_merge_fn(
     num_retrievals,
     enable_debug_checks,
     max_length_generation,
-    tf_function_kwargs = None,
+    tf_function_kwargs=None,
 ):
   """Build the `maybe_retrieve_and_merge` closure."""
   tf_function_kwargs = {} if tf_function_kwargs is None else tf_function_kwargs
@@ -334,17 +351,12 @@ def _make_maybe_retrieve_and_merge_fn(
     ############################################################################
     helper_word_token_ids = None
     if use_helper_words:
-
-      helper_text = {"question": "Question:\n",
-                     "context": "\nContext:\n",
-                     "answer": "\nAnswer:\n"
-                     }
-
       helper_word_token_ids = {}
-      for k in helper_text:
-        ids = tf.constant(tokenizer.encode(helper_text[k]), dtype=tf.int32)
+      for k in _HELPER_TEXT:
+        ids = tf.constant(tokenizer.encode(_HELPER_TEXT[k]), dtype=tf.int32)
         ids = tf.repeat(tf.expand_dims(ids, 0), batch_size, axis=0)
         helper_word_token_ids[k] = ids
+
       question_ids_inputs = tf.concat(
           [helper_word_token_ids["question"], question_ids_inputs],
           axis=1
@@ -371,16 +383,14 @@ def _make_maybe_retrieve_and_merge_fn(
               answer_ids_inputs if not_test_split else None
           ),
           gpt2_tokenized_retrieved=bpe_indices_gpt2,
-          num_retrievals=num_retrievals,
+          num_retrievals_to_use=num_retrievals,
           temperature=temperature,
           context_size=context_size,
           enable_debug_checks=enable_debug_checks,
           distances=distances,
           max_generation_length=max_length_generation,
-          helper_word_token_ids=(
-              helper_word_token_ids if use_helper_words else None
-          ),
-          use_helper_words=use_helper_words,
+          helper_word_token_ids=helper_word_token_ids,
+          use_helper_words=constants.HelperWordModeChoices.multiple,
       )
 
     elif approach_type == constants.ApproachTypeChoices.naked_lm:
@@ -507,48 +517,88 @@ def _make_maybe_retrieve_and_merge_fn(
 
 # @tf.function
 def _tokenize_and_concat_while_loop(
-    all_retrieved_tokens: tf_utils.TFTensorType,
-    indices: tf_utils.TFTensorType,
-    num_retrieved: tf_utils.TFTensorType,
+    all_retrieved_contexts: tf_utils.TFTensorType,
+    selected_context_indices: tf_utils.TFTensorType,
+    num_retrievals_to_use: tf_utils.TFTensorType,
     batch_size: tf_utils.TFTensorType,
+    helper_word_mode: constants.HelperWordModeChoices,
+    context_helper_word_tokens: tf_utils.TFTensorType,
 ):
-  tf_utils.check_tf_tensor(all_retrieved_tokens)
-  tf_utils.check_tf_tensor(indices)
-
+  tf_utils.check_tf_tensor(all_retrieved_contexts)
+  tf_utils.check_tf_tensor(selected_context_indices)
 
   """Tokenizes and puts together the retrievals, per batch unit."""
   def condition(
-      index,
-      _  # pylint: disable=unused-argument
+      loop_index: tf.Tensor,
+      _,  # pylint: disable=unused-argument
   ):
-    return tf.less(index, num_retrieved)
+    """While we have concatenated fewer contexts than `num_retrievals_to_use`
+    """
+    return tf.less(loop_index, num_retrievals_to_use)
 
   def body(
-      index,
-      concat_tokens,
+      loop_index,
+      previously_concat_contexts: tf.RaggedTensor,
   ):
 
-    addition = tf.gather(all_retrieved_tokens, indices[:, index], batch_dims=1)
+    # Take the retrieved contexts associated to the context index associated
+    # to the current loop index
+    context_to_concat: tf.RaggedTensor = tf.gather(
+      all_retrieved_contexts,
+      selected_context_indices[:, loop_index],
+      batch_dims=1
+    )
+    # print("")
+    # print(f"{previously_concat_contexts.row_lengths() = }")
+    # print(f"{context_to_concat.row_lengths() = }")
+    # print("")
 
-    concat_tokens = tf.concat([
-        concat_tokens, addition
-    ], axis=1)
+    # Concatenate the tokens of the new context to the previously concatenated
+    # contexts. Possibly add helper words.
+    if helper_word_mode == constants.HelperWordModeChoices.once:
+      previously_concat_contexts = tf.concat([
+        previously_concat_contexts,
+        context_to_concat
+      ], axis=1)
+    elif helper_word_mode == constants.HelperWordModeChoices.multiple:
+      previously_concat_contexts = tf.concat([
+        previously_concat_contexts,
+        context_helper_word_tokens,
+        context_to_concat
+      ], axis=1)
+    else:
+      raise RuntimeError(f"Unsupported helper_word_mode: {helper_word_mode}")
 
-    return index + 1, concat_tokens
+    # Increment the counter.
+    return loop_index + 1, previously_concat_contexts
 
   if batch_size is None:
     raise RuntimeError("batch_size is `None`. This should not happen.")
 
   return tf.while_loop(
       condition, body, [
-          0, tf.RaggedTensor.from_tensor(
+        0, # loop index
+        tf.RaggedTensor.from_tensor(
               tf.zeros(
                   shape=(batch_size, 0),
                   dtype=tf.int32
               ),
-          )
+          ) # previously concatenated contexts
       ])[1]
 
+def _print_info(
+    concat_retrieved_: tf.RaggedTensor, title, tokenizer, helper_word_token_ids,
+):
+  panel_text = []
+  panel_text += [f"{concat_retrieved_.shape = }"]
+  panel_text += [f"{concat_retrieved_.row_lengths(axis=-1) = }"]
+  for batch_idx in range(concat_retrieved_.shape[0]):
+    whole_text = tokenizer.decode(concat_retrieved_[batch_idx])
+    text_array = np.array(whole_text.split())
+    helper_text = tokenizer.decode(helper_word_token_ids['context'][0]).strip()
+    num_context_tokens = np.sum(text_array == helper_text)
+    panel_text += [f"{num_context_tokens = }"]
+  print(rich.panel.Panel("\n\n".join(panel_text), title=title))
 
 # @tf.function
 def _prepare_samples_w_retrieval(
@@ -558,7 +608,7 @@ def _prepare_samples_w_retrieval(
     answer_ids_inputs: tf_utils.TFTensorType,
     gpt2_tokenized_retrieved: tf_utils.TFTensorType,
     distances,
-    num_retrievals,
+    num_retrievals_to_use,
     temperature,
     context_size,
     enable_debug_checks,
@@ -566,12 +616,29 @@ def _prepare_samples_w_retrieval(
     helper_word_token_ids,
     max_generation_length
 ):
-  """Prepares the samples that use retrieval."""
+  utils.check_contained(
+    use_helper_words,
+    constants.HelperWordModeChoices.choices()
+  )
+
+  """Prepares the samples that use retrieval.
+  In regards to helper words, we only use them once. This could be changed.
+  It would have many advantages.
+  """
   assert (split == constants.SplitChoices.test) == (
       answer_ids_inputs is None
   ), (split == constants.SplitChoices.test, answer_ids_inputs)
-  # If and only if
 
+  tokenizer = transformers.AutoTokenizer.from_pretrained("gpt2-xl")
+  # panel_title = "Begining of _prepare_samples_w_retrieval"
+  # panel_text = [f"{question_ids_inputs.shape = }"]
+  # panel_text += [f"{question_ids_inputs.row_lengths(axis=-1) = }"]
+  # panel_text += [f"{answer_ids_inputs.shape = }"]
+  # panel_text += [f"{answer_ids_inputs.row_lengths(axis=-1) = }"]
+  # panel_text += [f"{distances.shape = }"]
+  # panel_text += [f"{gpt2_tokenized_retrieved.shape = }"]
+  # panel_text += [f"{gpt2_tokenized_retrieved.row_lengths(axis=-1) = }"]
+  # print(rich.panel.Panel("\n\n".join(panel_text), title=panel_title))
   is_not_test = split != constants.SplitChoices.test
 
   if not isinstance(question_ids_inputs, tf.RaggedTensor):
@@ -612,24 +679,37 @@ def _prepare_samples_w_retrieval(
   # Sample from the possible retrievals
   ##############################################################################
   # Choose the indices
-  indices = tf_utils.sample_without_replacement(
-      distances / temperature, num_retrievals
+  selected_context_indices = tf_utils.sample_without_replacement(
+      distances / temperature, num_retrievals_to_use
   )
 
   # Concatenate the retrievals
-  concat_retrieved = _tokenize_and_concat_while_loop(
-      gpt2_tokenized_retrieved,
-      indices=indices,
-      batch_size=batch_size,
-      num_retrieved=num_retrievals,
+  utils.check_isinstance(helper_word_token_ids, dict)
+  utils.check_isinstance(
+    helper_word_token_ids['context'],
+    tuple([np.ndarray] + list(tf_utils.TfTensorTypeTuple))
   )
 
-  # Add Context and Answer Helper Words
-  if use_helper_words:
+  concat_retrieved = _tokenize_and_concat_while_loop(
+      gpt2_tokenized_retrieved,
+      selected_context_indices=selected_context_indices,
+      batch_size=batch_size,
+      num_retrievals_to_use=num_retrievals_to_use,
+      helper_word_mode=use_helper_words,
+      context_helper_word_tokens=helper_word_token_ids['context'],
+  )
+
+  if use_helper_words == constants.HelperWordModeChoices.once:
     concat_retrieved = tf.concat([
         helper_word_token_ids["context"],
         concat_retrieved,
     ], axis=1)
+  # _print_info(
+  #   concat_retrieved,
+  #   f"Num of 'context' helper words. Mode: {use_helper_words}",
+  #   tokenizer,
+  #   helper_word_token_ids
+  # )
 
   # Cut the lengths down to max_lens_retrieval.
   # The eventual length of the ["question"] helper_tokens is included in
@@ -667,6 +747,12 @@ def _prepare_samples_w_retrieval(
           tf.expand_dims(max_lens_retrieval, axis=1)
       )
   )
+  panel_text = []
+  panel_text += [f"{selected_context_indices.shape = }"]
+  panel_text += [f"{concat_retrieved.shape = }"]
+  panel_text += [f"{concat_retrieved.row_lengths(axis=-1) = }"]
+  panel_text += [f"{max_lens_retrieval = }"]
+  print(rich.panel.Panel("\n\n".join(panel_text)))
 
   if enable_debug_checks:
     asserts = [
@@ -727,6 +813,8 @@ def _prepare_samples_w_retrieval(
            ],
           axis=1
       )
+
+  new_input_ids : tf.RaggedTensor
   return new_input_ids, new_label_ids if is_not_test else None
 
 

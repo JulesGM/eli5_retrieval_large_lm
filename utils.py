@@ -172,7 +172,7 @@ def check_isinstance(obj, type_):
                        f"\tGot:      {type(obj)}")
 
 
-def check_exists(path):
+def check_exists(path, inverse=False):
   """Check if a directory or a path is at the received path.
 
   Arguments:
@@ -182,11 +182,16 @@ def check_exists(path):
   Raises:
     RuntimeError: Raised if nothing exists at the received path.
   """
-  if path is None:
-    raise RuntimeError("Got None instead of a valid path.")
+  if not path:
+    raise RuntimeError(
+      f"Got `{path}` of type {type(path)} instead of a valid path."
+    )
 
-  if not gfile.Exists(path):
+  if not gfile.Exists(path) and not inverse:
     raise RuntimeError(f"File path `{path}` doesn't exist.")
+
+  elif gfile.Exists(path) and inverse:
+    raise RuntimeError(f"File path `{path}` exists and is required not to.")
 
 
 def check_glob_prefix(prefix):

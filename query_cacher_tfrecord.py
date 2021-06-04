@@ -134,7 +134,14 @@ _FLAG_USE_SUBSET = flags.DEFINE_boolean(
 _FLAG_SUBSET_QTY = flags.DEFINE_integer(
     "subset_qty",
     500,
-    "subset_qty"
+    "When using a subset of the dataset to debug this script, how big should "
+    "that dataset be."
+)
+
+_FLAG_TPU_IS_LOCAL = flags.DEFINE_boolean(
+  "tpu_is_local",
+  True,
+  "Whether the"
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -254,16 +261,20 @@ def _prep_field(field, gpt2_tokenizer):
 
 
 def main(argv):
+  # Arguments and logging boilerplate
   if len(argv) > 1:
     raise RuntimeError(argv)
+
   absl_logging.use_python_logging()
   utils.log_module_args(LOGGER, argv[0])
 
-  retriever_config = tf_utils.REALMSave(
+  # Load a retriever config.
+  retriever_config = tf_utils.REALMConfig(
       **utils.from_json_file(_FLAG_RETRIEVER_CONFIG_PATH.value)
   )
   assert not _FLAG_USE_SUBSET.value
 
+  # Preparation of the output path
   time_stamp = time.strftime("%Y%m%d-%H%M%S")
   target_path = os.path.join(_FLAG_OUTPUT_PATH.value, time_stamp.strip())
   if target_path[-1] != "/":
@@ -274,7 +285,9 @@ def main(argv):
   ##############################################################################
   # Duration is pretty much instantaneous
   with utils.log_duration(LOGGER, "main", "Initializing devices"):
-    tpu_config = tf_utils.init_tpus(_FLAG_TPU_NAME.value)
+    tpu_config = tf_utils.init_tpus(
+      local=_FLAG_TPU_IS_LOCAL.value, tpu_name=_FLAG_TPU_NAME.value
+    )
     device_type = tf_utils.current_accelerator_type()
     LOGGER.debug("Devices: %s", str(tf_utils.devices_to_use()))
     if _FLAG_TPU_NAME.value and device_type == "CPU":
@@ -338,33 +351,36 @@ def main(argv):
   resource.setrlimit(resource.RLIMIT_NOFILE, (max_num_fd, max_num_fd))
 
   ############################################################################
-  # Prepare the output file.
+  # Prepare the output files.
   ############################################################################
   writers = {}
   all_paths = {}
 
   for split in keys:
     maybe_subset = "_subset" if _FLAG_USE_SUBSET.value else ""
+    # Prepare paths. They can't be in a generator. A function generator would be
+    # fine though.
     paths = [os.path.join(target_path + maybe_subset, f"{split}_{i}.tfr")
              for i in range(_FLAG_NUM_SHARDS.value)]
     all_paths[split] = paths
     writers[split] = []
 
+    # Create The TFR writers.
     for i, path in enumerate(paths):
-      # print(f"Path {i} -- {split}: {path}")
       writers[split].append(tf.io.TFRecordWriter(path))
 
-    with utils.log_duration(LOGGER, "main", "Loading the reference db."):
-      checkpoint_path = os.path.join(
-          retriever_config.query_embedder_path,
-          "encoded", "encoded.ckpt"
+  # Load the reference DB. We used to accidentally do this once per split :O
+  with utils.log_duration(LOGGER, "main", "Loading the reference db."):
+    checkpoint_path = os.path.join(
+        retriever_config.query_embedder_path,
+        "encoded", "encoded.ckpt"
+    )
+    reference_db_device = tf_utils.device_mapping().CPUs[0].name
+    with tf.device(reference_db_device):
+      reference_db = tf_utils.load_reference_db(
+          checkpoint_path,
+          variable_name="block_emb",
       )
-      reference_db_device = tf_utils.device_mapping().CPUs[0].name
-      with tf.device(reference_db_device):
-        reference_db = tf_utils.load_reference_db(
-            checkpoint_path,
-            variable_name="block_emb",
-        )
 
   ############################################################################
   # Prep the encoder and the tokenizer
